@@ -150,7 +150,12 @@ fun AppNavigation() {
                         defaultValue = ""
                     }),
                 ) { entry ->
-                    ChatScreen(sessionId = entry.arguments?.getString("sessionId") ?: "")
+                    val sid = entry.arguments?.getString("sessionId") ?: ""
+                    ChatScreen(
+                        sessionId = sid,
+                        onBranched = { nid -> nav.navigate(Routes.chat(nid)) },
+                        onSessionClosed = { nav.navigate(Routes.SESSIONS) { popUpTo(nav.graph.startDestinationId) } },
+                    )
                 }
                 composable(Routes.SESSIONS) {
                     SessionsScreen(

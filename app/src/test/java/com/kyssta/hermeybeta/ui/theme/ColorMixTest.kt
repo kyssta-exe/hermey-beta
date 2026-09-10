@@ -1,5 +1,6 @@
 package com.kyssta.hermeybeta.ui.theme
 
+import com.kyssta.hermeybeta.ui.screens.formatUsage
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -50,6 +51,13 @@ class ColorMixTest {
     fun ensureContrastClears() {
         val fixed = ensureContrast("#777777", "#ffffff", 4.5)
         assertTrue(contrastRatio(fixed, "#ffffff") >= 4.5)
+    }
+
+    @Test
+    fun usageLabelFormats() {
+        assertEquals("0 calls · 0 tokens", formatUsage(0, 0))
+        assertEquals("12 calls · 45.2k tokens", formatUsage(12, 45213))
+        assertEquals("3 calls · 2.1m tokens", formatUsage(3, 2_100_000))
     }
 
     @Test
