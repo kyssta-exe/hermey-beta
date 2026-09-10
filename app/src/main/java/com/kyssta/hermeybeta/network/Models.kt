@@ -479,3 +479,35 @@ fun parseAuxSlots(root: JSONObject): List<AuxSlot> {
         )
     }
 }
+
+// ─── Toolsets (Settings → Tools; mirrors web_server.py shapes) ─────────────
+data class ToolsetInfo(
+    val name: String = "",
+    val label: String? = null,
+    val description: String? = null,
+    val enabled: Boolean = false,
+    val configured: Boolean = false,
+)
+
+fun parseToolsets(body: String): List<ToolsetInfo> {
+    val trimmed = body.trim()
+    return try {
+        val arr: JSONArray = if (trimmed.startsWith("[")) {
+            JSONArray(trimmed)
+        } else {
+            JSONObject(trimmed).optJSONArray("toolsets") ?: return emptyList()
+        }
+        List(arr.length()) { i ->
+            val o = arr.optJSONObject(i) ?: JSONObject()
+            ToolsetInfo(
+                name = o.optString("name"),
+                label = o.optString("label").takeUnless { it.isBlank() },
+                description = o.optString("description").takeUnless { it.isBlank() },
+                enabled = o.optBoolean("enabled", false),
+                configured = o.optBoolean("configured", false),
+            )
+        }
+    } catch (_: Exception) {
+        emptyList()
+    }
+}

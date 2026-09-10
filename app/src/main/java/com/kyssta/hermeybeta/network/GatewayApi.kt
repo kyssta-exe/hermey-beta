@@ -109,9 +109,14 @@ class GatewayApi(baseUrl: String, private val onUnauthorized: () -> Unit = {}) {
         }
 
     private suspend fun delete(path: String): String =
+        deleteJson(path, null)
+
+    private suspend fun deleteJson(path: String, json: JSONObject?): String =
         withContext(Dispatchers.IO) {
-            val req = Request.Builder().url(buildUrl(base, path)).delete().build()
-            client.newCall(req).execute().use { resp ->
+            val builder = Request.Builder().url(buildUrl(base, path))
+            if (json != null) builder.delete(json.toString().toRequestBody("application/json".toMediaType()))
+            else builder.delete()
+            client.newCall(builder.build()).execute().use { resp ->
                 val body = resp.body?.string() ?: ""
                 if (!resp.isSuccessful) {
                     if (resp.code == 401) runCatching { onUnauthorized() }
@@ -334,6 +339,55 @@ class GatewayApi(baseUrl: String, private val onUnauthorized: () -> Unit = {}) {
                 JSONObject().put("model", model).put("provider", provider).put("scope", scope).put("task", task),
             ),
         )
+
+    // ── Server config (Settings → Workspace; PUT deep-merges, partial OK) ───
+    suspend fun serverConfig(): JSONObject = JSONObject(get("/api/config"))
+
+    suspend fun saveServerConfig(patch: JSONObject) {
+        post("/api/config", JSONObject().put("config", patch))
+    }
+
+    // ── Toolsets (Settings → Tools; mirrors web_server.py) ──────────────────
+    suspend fun toolsets(): List<ToolsetInfo> = parseToolsets(get("/api/tools/toolsets"))
+
+    suspend fun setToolsetEnabled(name: String, enabled: Boolean) {
+        put("/api/tools/toolsets/${enc(name)}", JSONObject().put("enabled", enabled))
+    }
+
+    suspend fun toolsetConfig(name: String): JSONObject =
+        JSONObject(get("/api/tools/toolsets/${enc(name)}/config"))
+
+    suspend fun setToolsetProvider(name: String, provider: String) {
+        put("/api/tools/toolsets/${enc(name)}/provider", JSONObject().put("provider", provider))
+    }
+
+    /** Returns the server's {saved, skipped, is_set} report. */
+    suspend fun setToolsetEnv(name: String, env: JSONObject): JSONObject =
+        JSONObject(put("/api/tools/toolsets/${enc(name)}/env", JSONObject().put("env", env)))
+
+    suspend fun revealEnv(key: String): String =
+        JSONObject(post("/api/env/reveal", JSONObject().put("key", key))).optString("value")
+
+    suspend fun clearEnv(key: String) {
+        deleteJson("/api/env", JSONObject().put("key", key))
+    }
+
+    suspend fun toolsetModels(name: String, provider: String? = null): JSONObject =
+        JSONObject(get("/api/tools/toolsets/${enc(name)}/models", mapOf("provider" to provider)))
+
+    suspend fun setToolsetModel(name: String, model: String, provider: String? = null) {
+        put(
+            "/api/tools/toolsets/${enc(name)}/model",
+            JSONObject().put("model", model).apply { provider?.let { put("provider", it) } },
+        )
+    }
+
+    /** Returns {ok, name(action), ...} — poll [actionStatus] with name. */
+    suspend fun runToolsetPostSetup(name: String, key: String): JSONObject =
+        JSONObject(post("/api/tools/toolsets/${enc(name)}/post-setup", JSONObject().put("key", key)))
+
+    suspend fun actionStatus(name: String, lines: Int = 60): JSONObject =
+        JSONObject(get("/api/actions/${enc(name)}/status", mapOf("lines" to lines.toString())))
 }
 
 fun gatewayErrorMessage(e: Throwable): String = when (e) {
