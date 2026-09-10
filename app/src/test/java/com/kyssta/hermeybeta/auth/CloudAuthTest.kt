@@ -1,6 +1,7 @@
 package com.kyssta.hermeybeta.auth
 
 import com.kyssta.hermeybeta.network.GatewayCookieJar
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -49,9 +50,7 @@ class CloudAuthTest {
     @Test
     fun injectRoundTrip() {
         injectCookies("https://gw.example.com", "hermes_session_at=abc; other=1")
-        val loaded = GatewayCookieJar.loadForRequest("https://gw.example.com/".let {
-            okhttp3.HttpUrl.Companion.toHttpUrl(it)
-        })
+        val loaded = GatewayCookieJar.loadForRequest("https://gw.example.com/".toHttpUrl())
         assertTrue(loaded.any { it.name == "hermes_session_at" && it.value == "abc" })
         GatewayCookieJar.clear()
     }
