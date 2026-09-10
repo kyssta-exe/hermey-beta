@@ -11,11 +11,15 @@ object Routes {
     const val SESSIONS = "sessions"
     const val SKILLS = "skills"
     const val MESSAGING = "messaging"
+    const val WORKSPACE = "workspace"
     const val ARTIFACTS = "artifacts"
     const val CRON = "cron"
     const val PROFILES = "profiles"
     const val AGENTS = "agents"
     const val STARMAP = "starmap"
+    const val INSIGHTS = "insights"
+    const val MEMORY = "memory"
+    const val PAIRING = "pairing"
     const val SETTINGS = "settings"
 
     fun chat(sessionId: String = "") = if (sessionId.isBlank()) "chat?sessionId=" else "chat?sessionId=$sessionId"
@@ -33,8 +37,12 @@ enum class TopLevel(val route: String, val label: String) {
 enum class MoreScreen(val route: String, val label: String, val description: String) {
     ARTIFACTS(Routes.ARTIFACTS, "Artifacts", "Previews and generated files"),
     MESSAGING(Routes.MESSAGING, "Messaging", "Connected channels"),
+    WORKSPACE(Routes.WORKSPACE, "Workspace", "Server files"),
     PROFILES(Routes.PROFILES, "Gateways", "Remote and cloud connections"),
-    AGENTS(Routes.AGENTS, "Agents", "Subagents and runs"),
-    STARMAP(Routes.STARMAP, "Starmap", "Session graph"),
+    AGENTS(Routes.AGENTS, "Agents", "Live runs and processes"),
+    STARMAP(Routes.STARMAP, "Starmap", "Run history"),
+    INSIGHTS(Routes.INSIGHTS, "Insights", "Usage analytics"),
+    MEMORY(Routes.MEMORY, "Memory", "Agent memory"),
+    PAIRING(Routes.PAIRING, "Pairing", "Device approvals"),
     SETTINGS(Routes.SETTINGS, "Settings", "Models, appearance, connection"),
 }

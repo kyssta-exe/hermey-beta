@@ -40,9 +40,16 @@ import com.kyssta.hermeybeta.ui.screens.ComingFromDesktopScreen
 import com.kyssta.hermeybeta.ui.screens.ConnectScreen
 import com.kyssta.hermeybeta.ui.screens.CronScreen
 import com.kyssta.hermeybeta.ui.screens.GatewaysScreen
+import com.kyssta.hermeybeta.ui.screens.InsightsScreen
+import com.kyssta.hermeybeta.ui.screens.AgentsScreen
+import com.kyssta.hermeybeta.ui.screens.MemoryScreen
+import com.kyssta.hermeybeta.ui.screens.MessagingScreen
+import com.kyssta.hermeybeta.ui.screens.PairingScreen
 import com.kyssta.hermeybeta.ui.screens.SessionsScreen
 import com.kyssta.hermeybeta.ui.screens.SettingsScreen
 import com.kyssta.hermeybeta.ui.screens.SkillsScreen
+import com.kyssta.hermeybeta.ui.screens.StarmapScreen
+import com.kyssta.hermeybeta.ui.screens.WorkspaceScreen
 import com.kyssta.hermeybeta.ui.theme.Hermes
 import kotlinx.coroutines.launch
 
@@ -168,18 +175,20 @@ fun AppNavigation() {
                 composable(Routes.ARTIFACTS) {
                     ComingFromDesktopScreen("Artifacts", "Previews, files, review and terminal panes attach to the current task on desktop.")
                 }
-                composable(Routes.MESSAGING) {
-                    ComingFromDesktopScreen("Messaging", "Channel adapters (Telegram, Discord, …) are configured per gateway.")
-                }
+                composable(Routes.MESSAGING) { MessagingScreen() }
+                composable(Routes.WORKSPACE) { WorkspaceScreen() }
                 composable(Routes.PROFILES) {
                     GatewaysScreen(onAddGateway = { nav.navigate(Routes.CONNECT) })
                 }
                 composable(Routes.AGENTS) {
-                    ComingFromDesktopScreen("Agents", "Subagents, background delegation and the command center live here on desktop.")
+                    AgentsScreen(onOpenSession = { id -> nav.navigate(Routes.chat(id)) })
                 }
                 composable(Routes.STARMAP) {
-                    ComingFromDesktopScreen("Starmap", "The session graph and timeline visualize here on desktop.")
+                    StarmapScreen(onOpenSession = { id -> nav.navigate(Routes.chat(id)) })
                 }
+                composable(Routes.INSIGHTS) { InsightsScreen() }
+                composable(Routes.MEMORY) { MemoryScreen() }
+                composable(Routes.PAIRING) { PairingScreen() }
                 composable(Routes.SETTINGS) {
                     SettingsScreen(
                         onSignOut = {},

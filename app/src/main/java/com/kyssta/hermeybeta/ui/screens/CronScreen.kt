@@ -9,8 +9,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -21,6 +23,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,6 +36,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.kyssta.hermeybeta.network.CronJob
 import com.kyssta.hermeybeta.network.gatewayErrorMessage
 import com.kyssta.hermeybeta.session.SessionRepository
+import com.kyssta.hermeybeta.session.WsRpc
 import com.kyssta.hermeybeta.ui.components.EmptyState
 import com.kyssta.hermeybeta.ui.components.ErrorState
 import com.kyssta.hermeybeta.ui.components.HermesButton
@@ -42,6 +46,7 @@ import com.kyssta.hermeybeta.ui.components.Loader
 import com.kyssta.hermeybeta.ui.theme.Hermes
 import com.kyssta.hermeybeta.ui.theme.HermesLayout
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 
 class CronViewModel(app: Application) : AndroidViewModel(app) {
     var jobs by mutableStateOf<List<CronJob>>(emptyList())
@@ -81,6 +86,42 @@ class CronViewModel(app: Application) : AndroidViewModel(app) {
             }
         }
     }
+
+    /** Full CRUD goes through cron.manage (list/add/remove/pause/resume). */
+    fun addJob(name: String, schedule: String, prompt: String) {
+        viewModelScope.launch {
+            try {
+                WsRpc.call(
+                    "cron.manage",
+                    JSONObject()
+                        .put("action", "add")
+                        .put("name", name)
+                        .put("schedule", schedule)
+                        .put("prompt", prompt),
+                    timeoutMs = 30_000,
+                )
+                load(force = true)
+            } catch (e: Exception) {
+                error = gatewayErrorMessage(e)
+            }
+        }
+    }
+
+    fun remove(job: CronJob) {
+        val id = job.id ?: return
+        viewModelScope.launch {
+            try {
+                WsRpc.call(
+                    "cron.manage",
+                    JSONObject().put("action", "remove").put("name", id),
+                    timeoutMs = 30_000,
+                )
+                load(force = true)
+            } catch (e: Exception) {
+                error = gatewayErrorMessage(e)
+            }
+        }
+    }
 }
 
 /** Cron — mirrors the desktop cron overlay (jobs, pause/resume). */
@@ -90,6 +131,7 @@ fun CronScreen() {
     val vm: CronViewModel = viewModel()
     val conn by SessionRepository.connection.collectAsState()
     val p = Hermes
+    var showAdd by remember { mutableStateOf(false) }
 
     LaunchedEffect(conn) { vm.load() }
 
@@ -98,6 +140,9 @@ fun CronScreen() {
             TopAppBar(
                 title = { Text("Cron", color = p.textPrimary) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = p.sidebar),
+                actions = {
+                    HermesButton("Add", onClick = { showAdd = true }, variant = HermesVariant.Ghost, size = HermesSize.Sm)
+                },
             )
         },
     ) { padding ->
@@ -139,6 +184,12 @@ fun CronScreen() {
                                         variant = HermesVariant.Text,
                                         size = HermesSize.Sm,
                                     )
+                                    HermesButton(
+                                        "Delete",
+                                        onClick = { vm.remove(job) },
+                                        variant = HermesVariant.Text,
+                                        size = HermesSize.Sm,
+                                    )
                                 }
                                 job.prompt?.let {
                                     Text(it, fontSize = 13.sp, color = p.textSecondary, maxLines = 2)
@@ -155,5 +206,32 @@ fun CronScreen() {
                 }
             }
         }
+    }
+
+    if (showAdd) {
+        var name by remember { mutableStateOf("") }
+        var schedule by remember { mutableStateOf("") }
+        var prompt by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { showAdd = false },
+            title = { Text("New scheduled job") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Name") }, singleLine = true)
+                    OutlinedTextField(value = schedule, onValueChange = { schedule = it }, label = { Text("Schedule (cron expr)") }, singleLine = true)
+                    OutlinedTextField(value = prompt, onValueChange = { prompt = it }, label = { Text("Prompt") }, minLines = 2)
+                }
+            },
+            confirmButton = {
+                HermesButton(
+                    "Create",
+                    onClick = { showAdd = false; vm.addJob(name, schedule, prompt) },
+                    enabled = name.isNotBlank() && schedule.isNotBlank() && prompt.isNotBlank(),
+                )
+            },
+            dismissButton = {
+                HermesButton("Cancel", onClick = { showAdd = false }, variant = HermesVariant.Text)
+            },
+        )
     }
 }

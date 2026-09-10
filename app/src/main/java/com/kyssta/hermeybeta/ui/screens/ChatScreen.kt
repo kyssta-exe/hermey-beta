@@ -140,6 +140,9 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
             error = "No gateway selected"
             return
         }
+        // Another screen may have attached a fresh socket; adopt it instead of
+        // talking on a closed one.
+        if (ws != null && SessionRepository.ws !== ws) stop()
         if (generation == SessionRepository.generation.value && ws != null) return
         generation = SessionRepository.generation.value
         stop()

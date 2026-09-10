@@ -201,6 +201,9 @@ class GatewayApi(baseUrl: String) {
     // ── Memory / models ───────────────────────────────────────────────────
     suspend fun memory(): JSONObject = JSONObject(get("/api/memory"))
 
+    suspend fun resetMemory(target: String = "all"): JSONObject =
+        JSONObject(post("/api/memory/reset", JSONObject().put("target", target)))
+
     suspend fun modelInfo(): ModelInfo = parseModelInfo(get("/api/model/info"))
 
     suspend fun modelOptions(): List<Pair<String, List<String>>> =
@@ -209,6 +212,48 @@ class GatewayApi(baseUrl: String) {
     suspend fun setModel(model: String) {
         post("/api/model/set", JSONObject().put("model", model))
     }
+
+    // ── Files (workspace browser) ─────────────────────────────────────────
+    suspend fun files(path: String? = null): JSONObject =
+        JSONObject(get("/api/files", mapOf("path" to path)))
+
+    suspend fun readFile(path: String): JSONObject =
+        JSONObject(get("/api/files/read", mapOf("path" to path)))
+
+    suspend fun mkdir(path: String): JSONObject =
+        JSONObject(post("/api/files/mkdir", JSONObject().put("path", path)))
+
+    // ── Messaging ─────────────────────────────────────────────────────────
+    suspend fun messagingPlatforms(): JSONObject =
+        JSONObject(get("/api/messaging/platforms"))
+
+    // ── Pairing ───────────────────────────────────────────────────────────
+    suspend fun pairing(): JSONObject = JSONObject(get("/api/pairing"))
+
+    suspend fun approvePairing(platform: String, code: String): JSONObject =
+        JSONObject(
+            post(
+                "/api/pairing/approve",
+                JSONObject().put("platform", platform).put("code", code),
+            ),
+        )
+
+    // ── MCP ───────────────────────────────────────────────────────────────
+    suspend fun mcpServers(): JSONObject = JSONObject(get("/api/mcp/servers"))
+
+    suspend fun mcpCatalog(): JSONObject = JSONObject(get("/api/mcp/catalog"))
+
+    // ── Analytics ─────────────────────────────────────────────────────────
+    suspend fun analyticsUsage(days: Int): JSONObject =
+        JSONObject(get("/api/analytics/usage", mapOf("days" to days.toString())))
+
+    suspend fun analyticsModels(days: Int): JSONObject =
+        JSONObject(get("/api/analytics/models", mapOf("days" to days.toString())))
+
+    // ── Server-side profiles ──────────────────────────────────────────────
+    suspend fun profiles(): JSONObject = JSONObject(get("/api/profiles"))
+
+    suspend fun activeProfile(): JSONObject = JSONObject(get("/api/profiles/active"))
 }
 
 fun gatewayErrorMessage(e: Throwable): String = when (e) {
