@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedTextField
@@ -43,6 +42,7 @@ import com.kyssta.hermeybeta.session.WsRpc
 import com.kyssta.hermeybeta.ui.components.EmptyState
 import com.kyssta.hermeybeta.ui.components.ErrorState
 import com.kyssta.hermeybeta.ui.components.HermesButton
+import com.kyssta.hermeybeta.ui.components.HermesDialog
 import com.kyssta.hermeybeta.ui.components.HermesSize
 import com.kyssta.hermeybeta.ui.components.HermesVariant
 import com.kyssta.hermeybeta.ui.components.Loader
@@ -290,7 +290,7 @@ fun McpScreen() {
         val envValues = androidx.compose.runtime.remember(entry.name) {
             mutableStateMapOf<String, String>().apply { entry.requiredEnv.forEach { put(it.first, "") } }
         }
-        AlertDialog(
+        HermesDialog(
             onDismissRequest = { vm.installing = null },
             title = { Text("Install ${entry.name}") },
             text = {

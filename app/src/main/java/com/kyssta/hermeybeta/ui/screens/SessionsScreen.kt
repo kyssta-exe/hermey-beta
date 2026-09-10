@@ -33,6 +33,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.kyssta.hermeybeta.auth.ConnectionStore
+import com.kyssta.hermeybeta.auth.ServerConnection
 import com.kyssta.hermeybeta.network.SessionSummary
 import com.kyssta.hermeybeta.network.gatewayErrorMessage
 import com.kyssta.hermeybeta.session.SessionRepository
@@ -49,14 +51,16 @@ import kotlinx.coroutines.launch
 import org.json.JSONObject
 
 class SessionsViewModel(app: Application) : AndroidViewModel(app) {
+    private val store = ConnectionStore(app)
     var sessions by mutableStateOf<List<SessionSummary>>(emptyList())
     var loading by mutableStateOf(true)
     var refreshing by mutableStateOf(false)
     var error by mutableStateOf<String?>(null)
     var query by mutableStateOf("")
     private var generation = -1
+    private var pinGen by mutableStateOf(0)
 
-    fun load(conn: com.kyssta.hermeybeta.auth.ServerConnection, force: Boolean = false) {
+    fun load(conn: ServerConnection, force: Boolean = false) {
         if (!force && generation == SessionRepository.generation.value && sessions.isNotEmpty()) return
         generation = SessionRepository.generation.value
         viewModelScope.launch {
@@ -73,26 +77,39 @@ class SessionsViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun refresh(conn: com.kyssta.hermeybeta.auth.ServerConnection) {
+    fun refresh(conn: ServerConnection) {
         refreshing = true
         generation = -1
         load(conn, force = true)
     }
 
-    fun togglePin(conn: com.kyssta.hermeybeta.auth.ServerConnection, s: SessionSummary) {
-        val id = s.stableId
-        if (id.isBlank()) return
-        viewModelScope.launch {
-            try {
-                SessionRepository.apiFor(conn).updateSession(id, JSONObject().put("pinned", s.pinned != true))
-                load(conn, force = true)
-            } catch (e: Exception) {
-                error = gatewayErrorMessage(e)
-            }
-        }
+    fun isPinned(conn: ServerConnection, s: SessionSummary): Boolean {
+        pinGen
+        return s.stableId.isNotBlank() && store.pinnedIds(conn.id).contains(s.stableId)
     }
 
-    fun archive(conn: com.kyssta.hermeybeta.auth.ServerConnection, s: SessionSummary, archived: Boolean) {
+    /** Pins are local UI state (desktop sidebar pins); the gateway has no pin field. */
+    fun togglePin(conn: ServerConnection, s: SessionSummary) {
+        val id = s.stableId
+        if (id.isBlank()) return
+        store.setPinned(conn.id, id, !isPinned(conn, s))
+        pinGen++
+    }
+
+    /** Pinned rows float to the top, like the desktop sidebar. */
+    fun visibleSessions(conn: ServerConnection, query: String): List<SessionSummary> {
+        pinGen
+        val pins = store.pinnedIds(conn.id)
+        return sessions
+            .filter {
+                query.isBlank() ||
+                    (it.title ?: "").contains(query, ignoreCase = true) ||
+                    (it.preview ?: "").contains(query, ignoreCase = true)
+            }
+            .sortedByDescending { pins.contains(it.stableId) }
+    }
+
+    fun archive(conn: ServerConnection, s: SessionSummary, archived: Boolean) {
         val id = s.stableId
         if (id.isBlank()) return
         viewModelScope.launch {
@@ -105,7 +122,7 @@ class SessionsViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun delete(conn: com.kyssta.hermeybeta.auth.ServerConnection, s: SessionSummary) {
+    fun delete(conn: ServerConnection, s: SessionSummary) {
         val id = s.stableId
         if (id.isBlank()) return
         viewModelScope.launch {
@@ -161,11 +178,8 @@ fun SessionsScreen(onOpenChat: (String) -> Unit, onNewChat: () -> Unit) {
                     onRetry = { conn?.let { vm.refresh(it) } },
                 )
                 else -> {
-                    val rows = vm.sessions.filter {
-                        vm.query.isBlank() ||
-                            (it.title ?: "").contains(vm.query, ignoreCase = true) ||
-                            (it.preview ?: "").contains(vm.query, ignoreCase = true)
-                    }
+                    val c = conn
+                    val rows = if (c != null) vm.visibleSessions(c, vm.query) else emptyList()
                     if (rows.isEmpty()) {
                         EmptyState(
                             title = if (vm.query.isBlank()) "No sessions yet" else "No matches",
@@ -182,6 +196,7 @@ fun SessionsScreen(onOpenChat: (String) -> Unit, onNewChat: () -> Unit) {
                                 items(rows, key = { it.stableId.ifBlank { it.title ?: "?" } }) { s ->
                                     SessionRow(
                                         s = s,
+                                        pinned = c != null && vm.isPinned(c, s),
                                         onClick = { onOpenChat(s.stableId) },
                                         onPin = { conn?.let { vm.togglePin(it, s) } },
                                         onArchive = { conn?.let { vm.archive(it, s, s.archived != true) } },
@@ -201,6 +216,7 @@ fun SessionsScreen(onOpenChat: (String) -> Unit, onNewChat: () -> Unit) {
 @Composable
 private fun SessionRow(
     s: SessionSummary,
+    pinned: Boolean,
     onClick: () -> Unit,
     onPin: () -> Unit,
     onArchive: () -> Unit,
@@ -236,13 +252,13 @@ private fun SessionRow(
         val sub = listOfNotNull(
             s.model,
             s.messageCount?.let { "$it msgs" },
-            if (s.pinned == true) "pinned" else null,
+            if (pinned) "pinned" else null,
             if (s.archived == true) "archived" else null,
         ).joinToString(" · ")
         if (sub.isNotEmpty()) Text(sub, fontSize = 12.sp, color = p.textTertiary)
         if (expanded) {
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                HermesButton(if (s.pinned == true) "Unpin" else "Pin", onClick = onPin, variant = HermesVariant.Text, size = HermesSize.Sm)
+                HermesButton(if (pinned) "Unpin" else "Pin", onClick = onPin, variant = HermesVariant.Text, size = HermesSize.Sm)
                 HermesButton(
                     if (s.archived == true) "Unarchive" else "Archive",
                     onClick = onArchive,

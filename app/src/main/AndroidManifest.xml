@@ -25,16 +25,6 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- Cloud (Nous) OAuth callback: hermeybeta://oauth/callback -->
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data
-                    android:scheme="hermeybeta"
-                    android:host="oauth"
-                    android:path="/callback" />
-            </intent-filter>
         </activity>
     </application>
 

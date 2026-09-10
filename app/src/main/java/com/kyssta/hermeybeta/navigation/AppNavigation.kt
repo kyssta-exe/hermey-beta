@@ -22,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -74,8 +75,9 @@ private val TABS = listOf(
 @Composable
 fun AppNavigation() {
     val ctx = LocalContext.current.applicationContext
-    val store = androidx.compose.runtime.remember { ConnectionStore(ctx) }
+    val store = remember { ConnectionStore(ctx) }
     val conn by SessionRepository.connection.collectAsState()
+    val reauth by SessionRepository.reauthNeeded.collectAsState()
 
     // Cold start: resume the saved gateway without blocking on its cookie.
     LaunchedEffect(Unit) {
@@ -84,8 +86,8 @@ fun AppNavigation() {
         }
     }
 
-    if (conn == null) {
-        ConnectScreen(onConnected = {})
+    if (conn == null || reauth) {
+        ConnectScreen(onConnected = { SessionRepository.clearReauth() })
         return
     }
 

@@ -73,7 +73,19 @@ class ConnectViewModel(app: Application) : AndroidViewModel(app) {
                 val api = SessionRepository.apiFor(conn)
                 if (username.isNotBlank() || password.isNotBlank()) {
                     val providers = api.authProviders()
-                    val provider = providers.firstOrNull { it.supportsPassword == true }?.name
+                    val passwordProvider = providers.firstOrNull { it.supportsPassword == true }
+                    if (providers.isNotEmpty() && passwordProvider == null) {
+                        // Verified against the server: without a password
+                        // provider only the browser OAuth round trip works, and
+                        // its session cookies never reach a native app.
+                        val names = providers.mapNotNull { it.displayName ?: it.name }.distinct()
+                        throw IllegalArgumentException(
+                            "This gateway only offers browser sign-in" +
+                                (if (names.isNotEmpty()) " (${names.joinToString(", ")})" else "") +
+                                " — use a gateway with password auth enabled.",
+                        )
+                    }
+                    val provider = passwordProvider?.name
                         ?: providers.firstOrNull()?.name
                         ?: "password"
                     val ok = api.passwordLogin(provider, username, password)
@@ -107,13 +119,15 @@ class ConnectViewModel(app: Application) : AndroidViewModel(app) {
 fun ConnectScreen(onConnected: () -> Unit) {
     val vm: ConnectViewModel = viewModel()
     val p = Hermes
+    val expired by SessionRepository.reauthNeeded.collectAsState()
     var modeIdx by mutableIntStateOf(0)
     var serverUrl by mutableStateOf("")
     var username by mutableStateOf("")
     var password by mutableStateOf("")
 
-    // Deep-link ticket capture (cloud OAuth return) is handled by pasting the
-    // token as the password — the password-login provider accepts it.
+    // OAuth browser sign-in is intentionally unsupported: the server completes
+    // it with HttpOnly session cookies inside the browser, which never reach
+    // this app's cookie jar. Gateways need a password provider for mobile.
     Scaffold(
         topBar = {
             TopAppBar(
@@ -138,6 +152,13 @@ fun ConnectScreen(onConnected: () -> Unit) {
                 color = p.textPrimary,
                 modifier = Modifier.padding(top = 24.dp),
             )
+            if (expired) {
+                Text(
+                    "Session expired — sign in again.",
+                    fontSize = 14.sp,
+                    color = p.yellow,
+                )
+            }
             Text(
                 "Chat with your Hermes agent through a remote or cloud gateway. Nothing runs on this phone.",
                 fontSize = 14.sp,

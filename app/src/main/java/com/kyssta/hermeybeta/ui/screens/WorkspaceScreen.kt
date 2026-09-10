@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedTextField
@@ -44,6 +43,7 @@ import com.kyssta.hermeybeta.session.SessionRepository
 import com.kyssta.hermeybeta.ui.components.EmptyState
 import com.kyssta.hermeybeta.ui.components.ErrorState
 import com.kyssta.hermeybeta.ui.components.HermesButton
+import com.kyssta.hermeybeta.ui.components.HermesDialog
 import com.kyssta.hermeybeta.ui.components.HermesSize
 import com.kyssta.hermeybeta.ui.components.HermesVariant
 import com.kyssta.hermeybeta.ui.components.Loader
@@ -232,7 +232,7 @@ fun WorkspaceScreen() {
     }
 
     vm.viewing?.let { (name, content) ->
-        AlertDialog(
+        HermesDialog(
             onDismissRequest = { vm.viewing = null },
             title = { Text(name) },
             text = { LogView(content.take(8000)) },
@@ -243,7 +243,7 @@ fun WorkspaceScreen() {
     }
     if (vm.showMkdir) {
         var name by remember { mutableStateOf("") }
-        AlertDialog(
+        HermesDialog(
             onDismissRequest = { vm.showMkdir = false },
             title = { Text("New folder") },
             text = {

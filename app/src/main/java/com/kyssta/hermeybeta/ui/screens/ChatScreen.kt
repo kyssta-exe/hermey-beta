@@ -17,17 +17,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -41,10 +38,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kyssta.hermeybeta.ui.theme.HermesMono
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -57,6 +54,8 @@ import com.kyssta.hermeybeta.session.SessionRepository
 import com.kyssta.hermeybeta.ui.components.EmptyState
 import com.kyssta.hermeybeta.ui.components.ErrorState
 import com.kyssta.hermeybeta.ui.components.HermesButton
+import com.kyssta.hermeybeta.ui.components.HermesDialog
+import com.kyssta.hermeybeta.ui.components.HermesSheet
 import com.kyssta.hermeybeta.ui.components.HermesSize
 import com.kyssta.hermeybeta.ui.components.HermesVariant
 import com.kyssta.hermeybeta.ui.components.Loader
@@ -76,8 +75,8 @@ sealed interface UiMsg {
     data class Tool(val name: String, var summary: String, var done: Boolean) : UiMsg
 }
 
-data class ClarifyState(val id: String, val question: String, val options: List<String>)
-data class ApprovalState(val id: String, val command: String, val detail: String)
+data class ClarifyState(val requestId: String, val question: String, val options: List<String>)
+data class ApprovalState(val command: String, val detail: String, val choices: List<String>)
 data class SlashItem(val text: String, val display: String)
 
 /** Compact "12 calls · 45.2k tokens" label for the chat header. */
@@ -143,9 +142,15 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
         // Another screen may have attached a fresh socket; adopt it instead of
         // talking on a closed one.
         if (ws != null && SessionRepository.ws !== ws) stop()
-        if (generation == SessionRepository.generation.value && ws != null) return
+        if (generation == SessionRepository.generation.value && ws != null && initialSessionId == sessionId) return
         generation = SessionRepository.generation.value
         stop()
+        messages.clear()
+        toolRows.clear()
+        clarify = null
+        approval = null
+        slashItems = emptyList()
+        usageLabel = null
         sessionId = initialSessionId
         socketState = "connecting"
         error = null
@@ -321,18 +326,21 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
     fun answerClarify(response: String) {
         val c = clarify ?: return
         clarify = null
-        ws?.rpc(
-            ws!!.nextId(), "clarify.respond",
-            JSONObject().put("id", c.id).put("response", response),
+        val socket = ws ?: return
+        // Verified: clarify.respond takes {request_id, answer}.
+        socket.rpc(
+            socket.nextId(), "clarify.respond",
+            JSONObject().put("request_id", c.requestId).put("answer", response),
         )
     }
 
-    fun answerApproval(approved: Boolean) {
-        val a = approval ?: return
+    fun answerApproval(choice: String) {
         approval = null
-        ws?.rpc(
-            ws!!.nextId(), "approval.respond",
-            JSONObject().put("id", a.id).put("approved", approved),
+        val socket = ws ?: return
+        // Verified: approval.respond is session-scoped and takes {choice, all}.
+        socket.rpc(
+            socket.nextId(), "approval.respond",
+            JSONObject().put("choice", choice).put("all", false),
         )
     }
 
@@ -405,11 +413,17 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
                     streaming = true
                 }
             }
-            "message.complete" -> finalizeStream()
+            "message.complete" -> {
+                val text = p.optString("text")
+                val row = messages.lastOrNull { it is UiMsg.Assistant && !it.done } as? UiMsg.Assistant
+                if (row != null && row.text.isBlank() && text.isNotBlank()) row.text = text
+                finalizeStream()
+            }
             "tool.start" -> {
                 val id = p.optString("id").ifBlank { p.optString("tool_id") }.ifBlank { "t${toolRows.size}" }
                 val name = p.optString("name").ifBlank { p.optString("tool") }.ifBlank { "tool" }
-                val row = UiMsg.Tool(name, "running…", done = false)
+                val preview = p.optString("preview").ifBlank { p.optString("text") }
+                val row = UiMsg.Tool(name, preview.ifBlank { "running…" }, done = false)
                 toolRows[id] = row
                 messages += row
             }
@@ -428,17 +442,20 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
             }
             "clarify.request" -> {
                 val opts = p.optJSONArray("options")?.let { a -> List(a.length()) { i -> a.optString(i) } }.orEmpty()
+                    .map { it.toString() }.filter { it.isNotBlank() }
                 clarify = ClarifyState(
-                    id = p.optString("id").ifBlank { "clarify" },
+                    requestId = p.optString("request_id"),
                     question = p.optString("question").ifBlank { p.optString("prompt") }.ifBlank { p.optString("text") },
                     options = opts,
                 )
             }
             "approval.request" -> {
+                val choices = p.optJSONArray("choices")?.let { a -> List(a.length()) { i -> a.optString(i) } }.orEmpty()
+                    .map { it.toString() }.filter { it.isNotBlank() }
                 approval = ApprovalState(
-                    id = p.optString("id").ifBlank { "approval" },
                     command = p.optString("command").ifBlank { p.optString("tool") }.ifBlank { "command" },
                     detail = p.optString("description").ifBlank { p.optString("detail") },
+                    choices = choices,
                 )
             }
             "gateway.ready" -> socketState = "open"
@@ -668,7 +685,8 @@ fun ChatScreen(
     }
 
     vm.clarify?.let { c ->
-        AlertDialog(
+        var customAnswer by remember(c.requestId) { mutableStateOf("") }
+        HermesDialog(
             onDismissRequest = {},
             title = { Text("Hermes needs input") },
             text = {
@@ -677,27 +695,41 @@ fun ChatScreen(
                     c.options.forEach { opt ->
                         HermesButton(opt, onClick = { vm.answerClarify(opt) }, variant = HermesVariant.Secondary, size = HermesSize.Sm, modifier = Modifier.fillMaxWidth())
                     }
+                    OutlinedTextField(
+                        value = customAnswer,
+                        onValueChange = { customAnswer = it },
+                        label = { Text("Or type an answer") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                    )
                 }
             },
             confirmButton = {
-                if (c.options.isEmpty()) HermesButton("OK", onClick = { vm.answerClarify("proceed") })
+                HermesButton("Send", onClick = { vm.answerClarify(customAnswer.ifBlank { "proceed" }) }, enabled = true)
             },
         )
     }
     vm.approval?.let { a ->
-        AlertDialog(
+        HermesDialog(
             onDismissRequest = {},
             title = { Text("Approve command?") },
             text = {
-                Column {
-                    Text(a.command, fontFamily = FontFamily.Monospace)
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(a.command, fontFamily = HermesMono)
                     if (a.detail.isNotBlank()) Text(a.detail)
+                    val choices = a.choices.ifEmpty { listOf("once", "deny") }
+                    choices.forEach { choice ->
+                        HermesButton(
+                            choice.replaceFirstChar { it.uppercase() },
+                            onClick = { vm.answerApproval(choice) },
+                            variant = if (choice == "deny") HermesVariant.Destructive else HermesVariant.Secondary,
+                            size = HermesSize.Sm,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                 }
             },
-            confirmButton = { HermesButton("Approve", onClick = { vm.answerApproval(true) }) },
-            dismissButton = {
-                HermesButton("Deny", onClick = { vm.answerApproval(false) }, variant = HermesVariant.Destructive)
-            },
+            confirmButton = {},
         )
     }
     if (showModels) {
@@ -757,7 +789,7 @@ private fun SessionMenuSheet(
 ) {
     val p = Hermes
     var name by mutableStateOf("")
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState()) {
+    HermesSheet(onDismissRequest = onDismiss) {
         Column(
             Modifier.padding(horizontal = HermesLayout.PAGE_INSET_X.dp).padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -791,7 +823,7 @@ private fun ModelSheet(
     onDismiss: () -> Unit,
 ) {
     val p = Hermes
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState()) {
+    HermesSheet(onDismissRequest = onDismiss) {
         Column(
             Modifier.padding(horizontal = HermesLayout.PAGE_INSET_X.dp).padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),

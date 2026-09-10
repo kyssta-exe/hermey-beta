@@ -21,16 +21,33 @@ object SessionRepository {
     private val _generation = MutableStateFlow(0)
     val generation: StateFlow<Int> = _generation.asStateFlow()
 
+    /**
+     * Set when any gateway call gets 401: the cookie died server-side and the
+     * user must sign in again. The shell shows the connect screen until the
+     * next successful login clears it.
+     */
+    private val _reauthNeeded = MutableStateFlow(false)
+    val reauthNeeded: StateFlow<Boolean> = _reauthNeeded.asStateFlow()
+
+    fun requestReauth() {
+        if (_connection.value != null) _reauthNeeded.value = true
+    }
+
+    fun clearReauth() {
+        _reauthNeeded.value = false
+    }
+
     private val apis = mutableMapOf<String, GatewayApi>()
     var ws: GatewayWs? = null
         private set
 
     fun apiFor(conn: ServerConnection): GatewayApi =
-        apis.getOrPut(conn.id) { GatewayApi(conn.baseUrl) }
+        apis.getOrPut(conn.id) { GatewayApi(conn.baseUrl, onUnauthorized = { requestReauth() }) }
 
     fun activate(conn: ServerConnection) {
         closeSocket()
         _connection.value = conn
+        _reauthNeeded.value = false
         _generation.value += 1
     }
 

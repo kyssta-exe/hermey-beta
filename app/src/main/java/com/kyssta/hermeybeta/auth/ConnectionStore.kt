@@ -68,6 +68,19 @@ class ConnectionStore(context: Context) {
         if (_activeId.value == id) setActive(list.firstOrNull()?.id)
     }
 
+    /**
+     * Local session pins, mirroring the desktop sidebar (the gateway has no
+     * pin field — PATCH accepts only title/archived). Keyed per gateway.
+     */
+    fun pinnedIds(connId: String): Set<String> =
+        prefs.getStringSet("pinned_$connId", emptySet()).orEmpty()
+
+    fun setPinned(connId: String, sessionId: String, pinned: Boolean) {
+        val cur = pinnedIds(connId).toMutableSet()
+        if (pinned) cur += sessionId else cur -= sessionId
+        prefs.edit { putStringSet("pinned_$connId", cur) }
+    }
+
     private fun load(): List<ServerConnection> {
         val raw = prefs.getString("servers", null) ?: return emptyList()
         return try {

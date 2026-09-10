@@ -14,12 +14,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kyssta.hermeybeta.ui.theme.Hermes
 import com.kyssta.hermeybeta.ui.theme.HermesLayout
+import com.kyssta.hermeybeta.ui.theme.HermesMono
 
 /**
  * Feedback primitives — mirrors desktop Loader / ErrorState / LogView /
@@ -112,7 +112,7 @@ fun LogView(log: String, modifier: Modifier = Modifier) {
         Text(
             log,
             fontSize = 12.sp,
-            fontFamily = FontFamily.Monospace,
+            fontFamily = HermesMono,
             color = p.textSecondary,
             modifier = Modifier.verticalScroll(rememberScrollState()),
         )

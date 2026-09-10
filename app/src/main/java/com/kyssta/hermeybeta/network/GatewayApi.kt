@@ -54,7 +54,7 @@ class GatewayHttpException(val code: Int, val detail: String?) : IOException("HT
  *   GET  /api/memory
  *   GET  /api/model/info, /api/model/options; POST /api/model/set
  */
-class GatewayApi(baseUrl: String) {
+class GatewayApi(baseUrl: String, private val onUnauthorized: () -> Unit = {}) {
     private val base = normalizeRemoteBaseUrl(baseUrl)
     private val client: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
@@ -68,7 +68,10 @@ class GatewayApi(baseUrl: String) {
             val req = Request.Builder().url(buildUrl(base, path, query)).get().build()
             client.newCall(req).execute().use { resp ->
                 val body = resp.body?.string() ?: ""
-                if (!resp.isSuccessful) throw GatewayHttpException(resp.code, extractDetail(body))
+                if (!resp.isSuccessful) {
+                    if (resp.code == 401) runCatching { onUnauthorized() }
+                    throw GatewayHttpException(resp.code, extractDetail(body))
+                }
                 body
             }
         }
@@ -81,7 +84,10 @@ class GatewayApi(baseUrl: String) {
                 .build()
             client.newCall(req).execute().use { resp ->
                 val body = resp.body?.string() ?: ""
-                if (!resp.isSuccessful) throw GatewayHttpException(resp.code, extractDetail(body))
+                if (!resp.isSuccessful) {
+                    if (resp.code == 401) runCatching { onUnauthorized() }
+                    throw GatewayHttpException(resp.code, extractDetail(body))
+                }
                 body
             }
         }
@@ -94,7 +100,10 @@ class GatewayApi(baseUrl: String) {
                 .build()
             client.newCall(req).execute().use { resp ->
                 val body = resp.body?.string() ?: ""
-                if (!resp.isSuccessful) throw GatewayHttpException(resp.code, extractDetail(body))
+                if (!resp.isSuccessful) {
+                    if (resp.code == 401) runCatching { onUnauthorized() }
+                    throw GatewayHttpException(resp.code, extractDetail(body))
+                }
                 body
             }
         }
@@ -104,7 +113,10 @@ class GatewayApi(baseUrl: String) {
             val req = Request.Builder().url(buildUrl(base, path)).delete().build()
             client.newCall(req).execute().use { resp ->
                 val body = resp.body?.string() ?: ""
-                if (!resp.isSuccessful) throw GatewayHttpException(resp.code, extractDetail(body))
+                if (!resp.isSuccessful) {
+                    if (resp.code == 401) runCatching { onUnauthorized() }
+                    throw GatewayHttpException(resp.code, extractDetail(body))
+                }
                 body
             }
         }
@@ -117,7 +129,10 @@ class GatewayApi(baseUrl: String) {
                 .build()
             client.newCall(req).execute().use { resp ->
                 val body = resp.body?.string() ?: ""
-                if (!resp.isSuccessful) throw GatewayHttpException(resp.code, extractDetail(body))
+                if (!resp.isSuccessful) {
+                    if (resp.code == 401) runCatching { onUnauthorized() }
+                    throw GatewayHttpException(resp.code, extractDetail(body))
+                }
                 body
             }
         }

@@ -14,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -71,7 +72,7 @@ fun SettingsScreen(onSignOut: () -> Unit, onManageGateways: () -> Unit) {
     val conn by SessionRepository.connection.collectAsState()
     val p = Hermes
 
-    androidx.compose.runtime.LaunchedEffect(conn) { vm.load() }
+    LaunchedEffect(conn) { vm.load() }
 
     Scaffold(
         topBar = {
@@ -88,7 +89,7 @@ fun SettingsScreen(onSignOut: () -> Unit, onManageGateways: () -> Unit) {
                 .padding(horizontal = HermesLayout.PAGE_INSET_X.dp)
                 .verticalScroll(rememberScrollState()),
         ) {
-            Text("Gateway", color = p.textTertiary, fontSize = 12.sp)
+            Text("Gateway", color = p.textTertiary, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
             ListRow(
                 label = conn?.displayName ?: "None",
                 description = conn?.baseUrl,
