@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kyssta.hermeybeta.auth.ConnectionStore
 import com.kyssta.hermeybeta.auth.GatewayMode
+import com.kyssta.hermeybeta.auth.clearHostCookies
 import com.kyssta.hermeybeta.network.GatewayCookieJar
 import com.kyssta.hermeybeta.network.ServerProfile
 import com.kyssta.hermeybeta.network.parseProfiles
@@ -151,6 +152,7 @@ fun GatewaysScreen(onAddGateway: () -> Unit) {
                                     onClick = {
                                         if (isActive) {
                                             GatewayCookieJar.clear()
+                                            clearHostCookies(conn.baseUrl)
                                             SessionRepository.deactivate()
                                         }
                                         store.remove(conn.id)

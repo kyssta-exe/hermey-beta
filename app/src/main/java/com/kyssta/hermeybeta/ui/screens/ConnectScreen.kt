@@ -34,7 +34,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.kyssta.hermeybeta.auth.ConnectionStore
 import com.kyssta.hermeybeta.auth.GatewayMode
 import com.kyssta.hermeybeta.auth.ServerConnection
-import com.kyssta.hermeybeta.network.DEFAULT_CLOUD_BASE_URL
 import com.kyssta.hermeybeta.network.gatewayErrorMessage
 import com.kyssta.hermeybeta.network.normalizeRemoteBaseUrl
 import com.kyssta.hermeybeta.session.SessionRepository
@@ -116,7 +115,7 @@ class ConnectViewModel(app: Application) : AndroidViewModel(app) {
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ConnectScreen(onConnected: () -> Unit) {
+fun ConnectScreen(onConnected: () -> Unit, onCloudSignIn: () -> Unit = {}) {
     val vm: ConnectViewModel = viewModel()
     val p = Hermes
     val expired by SessionRepository.reauthNeeded.collectAsState()
@@ -125,9 +124,9 @@ fun ConnectScreen(onConnected: () -> Unit) {
     var username by mutableStateOf("")
     var password by mutableStateOf("")
 
-    // OAuth browser sign-in is intentionally unsupported: the server completes
-    // it with HttpOnly session cookies inside the browser, which never reach
-    // this app's cookie jar. Gateways need a password provider for mobile.
+    // Plain OAuth in a browser can't reach a native app's cookie jar — but the
+    // in-app Nous portal flow harvests its cookies, so cloud sign-in works.
+    // Direct gateway URLs still need a password provider for mobile.
     Scaffold(
         topBar = {
             TopAppBar(
@@ -167,18 +166,26 @@ fun ConnectScreen(onConnected: () -> Unit) {
             SegmentedControl(
                 options = listOf("Remote Gateway", "Cloud Gateway"),
                 selected = modeIdx,
-                onSelect = {
-                    modeIdx = it
-                    if (it == 1 && serverUrl.isBlank()) serverUrl = DEFAULT_CLOUD_BASE_URL
-                    if (it == 0 && serverUrl == DEFAULT_CLOUD_BASE_URL) serverUrl = ""
-                },
+                onSelect = { modeIdx = it },
                 modifier = Modifier.fillMaxWidth(),
             )
+            if (modeIdx == 1) {
+                HermesButton(
+                    "Sign in with Nous",
+                    onClick = onCloudSignIn,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Text(
+                    "Or connect to a hosted gateway directly:",
+                    fontSize = 13.sp,
+                    color = p.textTertiary,
+                )
+            }
             OutlinedTextField(
                 value = serverUrl,
                 onValueChange = { serverUrl = it },
-                label = { Text(if (modeIdx == 0) "Server URL" else "Cloud gateway URL") },
-                placeholder = { Text(if (modeIdx == 0) "https://hermes.example.com" else DEFAULT_CLOUD_BASE_URL) },
+                label = { Text(if (modeIdx == 0) "Server URL" else "Hosted gateway URL") },
+                placeholder = { Text("https://hermes.example.com") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),

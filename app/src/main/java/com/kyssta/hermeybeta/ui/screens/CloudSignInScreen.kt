@@ -65,7 +65,7 @@ import okhttp3.Request
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
-private enum class CloudStage { PORTAL, AGENTS, CASCADE }
+enum class CloudStage { PORTAL, AGENTS, CASCADE }
 
 class CloudSignInViewModel(app: Application) : AndroidViewModel(app) {
     val store = ConnectionStore(app)
@@ -333,9 +333,10 @@ private fun AuthWebView(url: String, modifier: Modifier = Modifier, onPageDone: 
             WebView(ctx).apply {
                 settings.javaScriptEnabled = true
                 settings.domStorageEnabled = true
+                val wv = this
                 CookieManager.getInstance().apply {
                     setAcceptCookie(true)
-                    acceptThirdPartyCookies(this@WebView, true)
+                    acceptThirdPartyCookies(wv, true)
                 }
                 webViewClient = object : WebViewClient() {
                     override fun onPageFinished(view: WebView, finishedUrl: String) {

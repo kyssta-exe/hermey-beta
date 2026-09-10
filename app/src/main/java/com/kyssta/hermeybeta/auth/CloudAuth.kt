@@ -79,6 +79,30 @@ fun parseCloudOrgs(root: JSONObject): List<CloudOrg> {
     }.filter { it.id.isNotBlank() }
 }
 
+/** Expire every cookie for one host (per-gateway forget without nuking portal login). */
+fun clearHostCookies(baseUrl: String) {
+    val url = try {
+        baseUrl.toHttpUrl()
+    } catch (_: Exception) {
+        return
+    }
+    val header = try {
+        android.webkit.CookieManager.getInstance().getCookie(baseUrl) ?: return
+    } catch (_: Exception) {
+        return
+    }
+    header.split(";").forEach { part ->
+        val name = part.trim().substringBefore("=").trim()
+        if (name.isNotBlank() && !name.startsWith("$")) {
+            try {
+                android.webkit.CookieManager.getInstance()
+                    .setCookie(baseUrl, "$name=; Max-Age=0; Path=/")
+            } catch (_: Exception) {
+            }
+        }
+    }
+}
+
 /** Move WebView-harvested cookies into the shared OkHttp jar. */
 fun injectCookies(baseUrl: String, cookieHeader: String) {
     val url = baseUrl.toHttpUrl()

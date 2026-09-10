@@ -37,6 +37,7 @@ import androidx.navigation.navArgument
 import com.kyssta.hermeybeta.auth.ConnectionStore
 import com.kyssta.hermeybeta.session.SessionRepository
 import com.kyssta.hermeybeta.ui.screens.ChatScreen
+import com.kyssta.hermeybeta.ui.screens.CloudSignInScreen
 import com.kyssta.hermeybeta.ui.screens.ComingFromDesktopScreen
 import com.kyssta.hermeybeta.ui.screens.ConnectScreen
 import com.kyssta.hermeybeta.ui.screens.CronScreen
@@ -204,7 +205,20 @@ fun AppNavigation() {
                     )
                 }
                 composable(Routes.CONNECT) {
-                    ConnectScreen(onConnected = { nav.popBackStack() })
+                    ConnectScreen(
+                        onConnected = { nav.popBackStack() },
+                        onCloudSignIn = { nav.navigate(Routes.CLOUD_SIGNIN) },
+                    )
+                }
+                composable(Routes.CLOUD_SIGNIN) {
+                    CloudSignInScreen(
+                        onDone = {
+                            // Fresh login lands home; drop the whole back stack.
+                            while (nav.popBackStack()) {
+                            }
+                        },
+                        onCancel = { nav.popBackStack() },
+                    )
                 }
             }
         }

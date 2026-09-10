@@ -128,6 +128,7 @@ fun SettingsScreen(onSignOut: () -> Unit, onManageGateways: () -> Unit) {
                 "Sign out",
                 onClick = {
                     GatewayCookieJar.clear()
+                    android.webkit.CookieManager.getInstance().removeAllCookies(null)
                     SessionRepository.deactivate()
                     ConnectionStore(ctx).setActive(null)
                     onSignOut()

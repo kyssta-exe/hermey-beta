@@ -7,6 +7,7 @@ package com.kyssta.hermeybeta.navigation
  */
 object Routes {
     const val CONNECT = "connect"
+    const val CLOUD_SIGNIN = "cloud-signin"
     const val CHAT = "chat?sessionId={sessionId}"
     const val SESSIONS = "sessions"
     const val SKILLS = "skills"

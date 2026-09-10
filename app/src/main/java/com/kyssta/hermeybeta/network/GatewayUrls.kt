@@ -55,6 +55,3 @@ fun buildUrl(baseUrl: String, path: String, query: Map<String, String?> = emptyM
 
 /** Encode one URL path segment (mirrors encodeURIComponent at call sites). */
 fun enc(segment: String): String = URLEncoder.encode(segment, "UTF-8")
-
-/** Cloud gateway default: the Nous-hosted Hermes endpoint family. */
-const val DEFAULT_CLOUD_BASE_URL = "https://hermes.get-hermes.ai"
