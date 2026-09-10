@@ -186,13 +186,13 @@ class GatewayApi(baseUrl: String, private val onUnauthorized: () -> Unit = {}) {
     suspend fun sessions(): List<SessionSummary> = parseSessions(get("/api/sessions"))
 
     suspend fun messages(sessionId: String, limit: Int? = null): List<ChatMessage> =
-        parseMessages(get("/api/sessions/$sessionId/messages", mapOf("limit" to limit?.toString())))
+        parseMessages(get("/api/sessions/${enc(sessionId)}/messages", mapOf("limit" to limit?.toString())))
 
     suspend fun updateSession(sessionId: String, patch: JSONObject): JSONObject =
-        JSONObject(patch("/api/sessions/$sessionId", patch))
+        JSONObject(patch("/api/sessions/${enc(sessionId)}", patch))
 
     suspend fun deleteSession(sessionId: String) {
-        delete("/api/sessions/$sessionId")
+        delete("/api/sessions/${enc(sessionId)}")
     }
 
     // ── Cron ──────────────────────────────────────────────────────────────

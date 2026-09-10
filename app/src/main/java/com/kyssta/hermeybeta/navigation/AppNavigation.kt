@@ -166,6 +166,8 @@ fun AppNavigation() {
                         sessionId = sid,
                         onBranched = { nid -> nav.navigate(Routes.chat(nid)) },
                         onSessionClosed = { nav.navigate(Routes.SESSIONS) { popUpTo(nav.graph.startDestinationId) } },
+                        onNewChat = { nav.navigate(Routes.chat()) },
+                        onOpenSessions = { nav.navigate(Routes.SESSIONS) { popUpTo(nav.graph.startDestinationId) } },
                     )
                 }
                 composable(Routes.SESSIONS) {

@@ -106,6 +106,7 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
     var approval by mutableStateOf<ApprovalState?>(null)
     var slashItems by mutableStateOf<List<SlashItem>>(emptyList())
     var usageLabel by mutableStateOf<String?>(null)
+    var notFound by mutableStateOf(false)
 
     private var ws: GatewayWs? = null
     private var loop: Job? = null
@@ -179,6 +180,8 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
                     val id = socket.nextId()
                     socket.rpc(id, "session.create")
                     awaitSessionId()?.let { sessionId = it }
+                } else {
+                    openSession(socket, sessionId)
                 }
                 refreshUsage()
             } catch (e: Exception) {
@@ -364,6 +367,51 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
         streaming = false
     }
 
+    /**
+     * Authoritative open: session.resume binds the live session (cold resume,
+     * compression chains) and returns history. REST transcript is the fallback
+     * rung; both missing means the session is gone (not a retry loop).
+     */
+    private suspend fun openSession(socket: GatewayWs, id: String) {
+        val rid = socket.nextId()
+        if (socket.rpc(rid, "session.resume", JSONObject().put("session_id", id))) {
+            val res = awaitReply(rid, 30_000)
+            if (res != null) {
+                res.optString("session_id").takeUnless { it.isBlank() }?.let { sessionId = it }
+                val msgs = res.optJSONArray("messages")
+                if (msgs != null) {
+                    for (i in 0 until msgs.length()) {
+                        addHistoryJson(msgs.optJSONObject(i) ?: JSONObject())
+                    }
+                    return
+                }
+            }
+        }
+        // Fallback rung: REST transcript.
+        try {
+            val conn = SessionRepository.connection.value ?: return
+            SessionRepository.apiFor(conn).messages(id).forEach { m -> addHistory(m) }
+        } catch (e: Exception) {
+            if (e is com.kyssta.hermeybeta.network.GatewayHttpException && e.code == 404) {
+                notFound = true
+            } else {
+                error = gatewayErrorMessage(e)
+            }
+        }
+    }
+
+    private fun addHistoryJson(o: JSONObject) {
+        val text = o.optString("content").ifBlank { o.optString("text") }
+        if (text.isBlank()) return
+        val role = o.optString("role")
+        when (role) {
+            "user" -> messages += UiMsg.User(text)
+            "assistant" -> messages += UiMsg.Assistant(text, done = true)
+            "tool" -> messages += UiMsg.Tool(o.optString("tool_name").ifBlank { "tool" }, text.take(200), done = true)
+            else -> messages += UiMsg.Assistant(text, done = true)
+        }
+    }
+
     private fun addHistory(m: ChatMessage) {
         val text = m.content ?: return
         when (m.role) {
@@ -379,8 +427,10 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
             when (frame) {
                 is WsFrame.Event -> onEvent(frame.type, frame.payload)
                 is WsFrame.Reply -> {
-                    frame.error?.let { error = it }
-                    pendingReplies.remove(frame.id)?.complete(frame.result)
+                    // Tracked request/response pairs handle their own errors;
+                    // only untracked replies (prompt.submit path) surface here.
+                    val tracked = pendingReplies.remove(frame.id)?.complete(frame.result) != null
+                    if (!tracked) frame.error?.let { error = it }
                     if (frame.id == pendingSubmitId) {
                         // The RPC may resolve before message.complete fires —
                         // finalize leftovers after a grace window.
@@ -492,6 +542,8 @@ fun ChatScreen(
     onNavigateBack: (() -> Unit)? = null,
     onSessionClosed: (() -> Unit)? = null,
     onBranched: ((String) -> Unit)? = null,
+    onNewChat: (() -> Unit)? = null,
+    onOpenSessions: (() -> Unit)? = null,
 ) {
     val vm: ChatViewModel = viewModel()
     val p = Hermes
@@ -578,6 +630,30 @@ fun ChatScreen(
                 .imePadding(),
         ) {
             when {
+                vm.notFound -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text("Session not found", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = p.textPrimary)
+                        Text(
+                            "It may have been deleted or rotated elsewhere.",
+                            fontSize = 13.sp,
+                            color = p.textSecondary,
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            if (onNewChat != null) {
+                                HermesButton("New chat", onClick = onNewChat, variant = HermesVariant.Secondary, size = HermesSize.Sm)
+                            }
+                            if (onOpenSessions != null) {
+                                HermesButton("Sessions", onClick = onOpenSessions, variant = HermesVariant.Text, size = HermesSize.Sm)
+                            }
+                        }
+                    }
+                }
                 vm.error != null && vm.messages.isEmpty() -> ErrorState(
                     title = "Could not open chat",
                     description = vm.error,
@@ -604,6 +680,8 @@ fun ChatScreen(
                     items(vm.messages.size) { i -> MessageRow(vm.messages[i]) }
                 }
             }
+            // The composer only shows when a message could actually send.
+            if (!vm.notFound && !(vm.messages.isEmpty() && vm.error != null)) {
             HorizontalDivider(color = p.strokeTertiary, thickness = 0.5.dp)
             // Server-side slash completion (desktop "/" menu, compact).
             if (vm.slashItems.isNotEmpty()) {
@@ -631,55 +709,66 @@ fun ChatScreen(
                 }
                 HorizontalDivider(color = p.strokeTertiary, thickness = 0.5.dp)
             }
-            Row(
+            Column(
                 Modifier
                     .fillMaxWidth()
                     .padding(horizontal = HermesLayout.PAGE_INSET_X.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.Bottom,
+                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                HermesButton(
-                    "+",
-                    onClick = {
-                        pickImage.launch(
-                            androidx.activity.result.PickVisualMediaRequest(
-                                ActivityResultContracts.PickVisualMedia.ImageOnly,
-                            ),
-                        )
-                    },
-                    variant = HermesVariant.Text,
-                    size = HermesSize.Sm,
-                )
-                HermesButton(
-                    "File",
-                    onClick = { pickFile.launch(arrayOf("*/*")) },
-                    variant = HermesVariant.Text,
-                    size = HermesSize.Sm,
-                )
-                OutlinedTextField(
-                    value = vm.input,
-                    onValueChange = { vm.onInputChanged(it) },
-                    modifier = Modifier.weight(1f),
-                    placeholder = { Text("Message Hermes…  ( / for commands )") },
-                    minLines = 1,
-                    maxLines = 6,
-                )
-                HermesButton(
-                    "Mic",
-                    onClick = {
-                        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                        }
-                        voiceInput.launch(intent)
-                    },
-                    variant = HermesVariant.Text,
-                    size = HermesSize.Sm,
-                )
-                HermesButton(
-                    "Send",
-                    onClick = { vm.send() },
-                    modifier = Modifier.padding(start = 8.dp),
-                    enabled = vm.input.isNotBlank() && !vm.streaming && vm.sessionId.isNotBlank(),
-                )
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.Bottom,
+                ) {
+                    OutlinedTextField(
+                        value = vm.input,
+                        onValueChange = { vm.onInputChanged(it) },
+                        modifier = Modifier.weight(1f),
+                        placeholder = { Text("Message Hermes…  ( / for commands )") },
+                        minLines = 1,
+                        maxLines = 6,
+                    )
+                    HermesButton(
+                        "Send",
+                        onClick = { vm.send() },
+                        modifier = Modifier.padding(start = 8.dp),
+                        enabled = vm.input.isNotBlank() && !vm.streaming && vm.sessionId.isNotBlank(),
+                    )
+                }
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    HermesButton(
+                        "+ Photo",
+                        onClick = {
+                            pickImage.launch(
+                                androidx.activity.result.PickVisualMediaRequest(
+                                    ActivityResultContracts.PickVisualMedia.ImageOnly,
+                                ),
+                            )
+                        },
+                        variant = HermesVariant.Text,
+                        size = HermesSize.Sm,
+                    )
+                    HermesButton(
+                        "File",
+                        onClick = { pickFile.launch(arrayOf("*/*")) },
+                        variant = HermesVariant.Text,
+                        size = HermesSize.Sm,
+                    )
+                    HermesButton(
+                        "Voice",
+                        onClick = {
+                            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                            }
+                            voiceInput.launch(intent)
+                        },
+                        variant = HermesVariant.Text,
+                        size = HermesSize.Sm,
+                    )
+                }
+            }
             }
         }
     }
