@@ -9,6 +9,7 @@ navigation = "2.8.3"
 okhttp = "4.12.0"
 coroutines = "1.8.1"
 securityCrypto = "1.1.0"
+jsonJvm = "20240303"
 junit = "4.13.2"
 
 [libraries]
@@ -28,6 +29,8 @@ navigation-compose = { group = "androidx.navigation", name = "navigation-compose
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
 coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
 security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "securityCrypto" }
+# Real org.json for JVM unit tests (android.jar only ships throwing stubs).
+json-jvm = { group = "org.json", name = "json", version.ref = "jsonJvm" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 
 [plugins]
