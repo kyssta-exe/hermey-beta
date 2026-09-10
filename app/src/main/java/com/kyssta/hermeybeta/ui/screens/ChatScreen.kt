@@ -5,21 +5,33 @@ import android.content.Intent
 import android.speech.RecognizerIntent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Build
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.SmartToy
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -38,6 +50,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -52,7 +65,9 @@ import com.kyssta.hermeybeta.network.ModelInfo
 import com.kyssta.hermeybeta.network.WsFrame
 import com.kyssta.hermeybeta.network.gatewayErrorMessage
 import com.kyssta.hermeybeta.session.SessionRepository
-import com.kyssta.hermeybeta.ui.components.EmptyState
+import com.kyssta.hermeybeta.ui.components.CineCard
+import com.kyssta.hermeybeta.ui.components.CineHero
+import com.kyssta.hermeybeta.ui.components.CineSub
 import com.kyssta.hermeybeta.ui.components.ErrorState
 import com.kyssta.hermeybeta.ui.components.HermesButton
 import com.kyssta.hermeybeta.ui.components.HermesDialog
@@ -63,6 +78,7 @@ import com.kyssta.hermeybeta.ui.components.Loader
 import com.kyssta.hermeybeta.ui.components.SearchField
 import com.kyssta.hermeybeta.ui.theme.Hermes
 import com.kyssta.hermeybeta.ui.theme.HermesLayout
+import com.kyssta.hermeybeta.ui.theme.HermesSans
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -700,10 +716,7 @@ fun ChatScreen(
                         .fillMaxWidth()
                         .padding(top = 48.dp),
                 )
-                vm.messages.isEmpty() -> EmptyState(
-                    title = "New chat",
-                    description = "Ask anything — tools, files and memory live on the gateway.",
-                )
+                vm.messages.isEmpty() -> NewChatEmptyState()
                 else -> LazyColumn(
                     state = listState,
                     modifier = Modifier
@@ -747,7 +760,11 @@ fun ChatScreen(
             Column(
                 Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = HermesLayout.PAGE_INSET_X.dp, vertical = 8.dp),
+                    .padding(horizontal = HermesLayout.PAGE_INSET_X.dp, vertical = 8.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(p.card)
+                    .border(1.dp, p.strokePrimary, RoundedCornerShape(16.dp))
+                    .padding(12.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Row(
@@ -758,7 +775,7 @@ fun ChatScreen(
                         value = vm.input,
                         onValueChange = { vm.onInputChanged(it) },
                         modifier = Modifier.weight(1f),
-                        placeholder = { Text("Message Hermes…  ( / for commands )") },
+                        placeholder = { Text("What are we building?") },
                         minLines = 1,
                         maxLines = 6,
                     )
@@ -877,6 +894,46 @@ fun ChatScreen(
             onClose = { vm.closeSession { onSessionClosed?.invoke() }; showSessionMenu = false },
             onDismiss = { showSessionMenu = false },
         )
+    }
+}
+
+/** DESIGN 01 home: hero wordmark, muted standfirst, three equal cards. */
+@Composable
+private fun ColumnScope.NewChatEmptyState() {
+    val p = Hermes
+    Column(
+        Modifier
+            .weight(1f)
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = HermesLayout.PAGE_INSET_X.dp, vertical = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        CineHero()
+        Spacer(Modifier.height(12.dp))
+        CineSub("Describe the task in your own words. I will pick the right tools, explain my plan, and check in before risky steps.")
+        Spacer(Modifier.height(20.dp))
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            CineCard(modifier = Modifier.weight(1f)) {
+                Icon(Icons.Outlined.Build, contentDescription = null, tint = p.blue, modifier = Modifier.padding(bottom = 8.dp))
+                Text("Build", color = p.textPrimary, fontFamily = HermesSans, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                Text("Turn ideas into working software", color = p.textSecondary, fontFamily = HermesSans, fontSize = 12.sp, lineHeight = 16.sp)
+            }
+            CineCard(modifier = Modifier.weight(1f)) {
+                Icon(Icons.Outlined.Search, contentDescription = null, tint = p.blue, modifier = Modifier.padding(bottom = 8.dp))
+                Text("Research", color = p.textPrimary, fontFamily = HermesSans, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                Text("Find, analyze and synthesize", color = p.textSecondary, fontFamily = HermesSans, fontSize = 12.sp, lineHeight = 16.sp)
+            }
+            CineCard(modifier = Modifier.weight(1f)) {
+                Icon(Icons.Outlined.SmartToy, contentDescription = null, tint = p.blue, modifier = Modifier.padding(bottom = 8.dp))
+                Text("Automate", color = p.textPrimary, fontFamily = HermesSans, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                Text("Use tools, run jobs and get results", color = p.textSecondary, fontFamily = HermesSans, fontSize = 12.sp, lineHeight = 16.sp)
+            }
+        }
     }
 }
 

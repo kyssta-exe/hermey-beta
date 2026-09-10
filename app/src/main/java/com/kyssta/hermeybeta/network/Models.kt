@@ -414,3 +414,68 @@ fun parseSpawnEntries(root: JSONObject): List<SpawnSnapshot> {
         )
     }
 }
+
+// ─── Kanban board ─────────────────────────────────────────────────────────
+data class KanbanTask(
+    val id: String = "",
+    val title: String = "",
+    val body: String? = null,
+    val assignee: String? = null,
+    val status: String = "todo",
+    val priority: Int = 0,
+    val commentCount: Int = 0,
+    val progressDone: Int? = null,
+    val progressTotal: Int? = null,
+    val createdAt: Long? = null,
+)
+
+data class KanbanColumn(val name: String = "", val tasks: List<KanbanTask> = emptyList())
+
+fun parseKanbanBoard(root: JSONObject): List<KanbanColumn> {
+    val arr = root.optJSONArray("columns") ?: return emptyList()
+    return List(arr.length()) { i ->
+        val c = arr.optJSONObject(i) ?: JSONObject()
+        val tasks = c.optJSONArray("tasks")?.let { ta ->
+            List(ta.length()) { j ->
+                val t = ta.optJSONObject(j) ?: JSONObject()
+                val progress = t.optJSONObject("progress")
+                KanbanTask(
+                    id = t.optString("id"),
+                    title = t.optString("title"),
+                    body = t.optString("body").takeUnless { it.isBlank() || it == "null" },
+                    assignee = t.optString("assignee").takeUnless { it.isBlank() || it == "null" },
+                    status = t.optString("status").ifBlank { "todo" },
+                    priority = t.optInt("priority"),
+                    commentCount = t.optInt("comment_count"),
+                    progressDone = progress?.optInt("done"),
+                    progressTotal = progress?.optInt("total"),
+                    createdAt = t.optLong("created_at").takeUnless { it == 0L },
+                )
+            }
+        }.orEmpty()
+        KanbanColumn(name = c.optString("name"), tasks = tasks)
+    }
+}
+
+/** Lane grouping for the mobile 3-lane board (DESIGN 02). */
+fun KanbanColumn.lane(): String = when (name) {
+    "running", "blocked", "review" -> "progress"
+    "done", "archived" -> "done"
+    else -> "todo" // triage, todo, scheduled, ready
+}
+
+// ─── Auxiliary models ─────────────────────────────────────────────────────
+data class AuxSlot(val task: String = "", val label: String? = null, val model: String? = null, val provider: String? = null)
+
+fun parseAuxSlots(root: JSONObject): List<AuxSlot> {
+    val arr = root.optJSONArray("tasks") ?: return emptyList()
+    return List(arr.length()) { i ->
+        val o = arr.optJSONObject(i) ?: JSONObject()
+        AuxSlot(
+            task = o.optString("task"),
+            label = o.optString("label").takeUnless { it.isBlank() },
+            model = o.optString("model").takeUnless { it.isBlank() },
+            provider = o.optString("provider").takeUnless { it.isBlank() },
+        )
+    }
+}

@@ -10,6 +10,7 @@ object Routes {
     const val CLOUD_SIGNIN = "cloud-signin"
     const val OAUTH_LOGIN = "oauth-login?base={base}"
     const val CHAT = "chat?sessionId={sessionId}"
+    const val TASKS = "tasks"
     const val SESSIONS = "sessions"
     const val SKILLS = "skills"
     const val MESSAGING = "messaging"
@@ -34,15 +35,15 @@ object Routes {
 
 enum class TopLevel(val route: String, val label: String) {
     CHAT(Routes.CHAT, "Chat"),
-    SESSIONS(Routes.SESSIONS, "Sessions"),
-    CRON(Routes.CRON, "Cron"),
+    TASKS(Routes.TASKS, "Tasks"),
     SKILLS(Routes.SKILLS, "Skills"),
-    MORE("more", "More"),
+    SETTINGS(Routes.SETTINGS, "Settings"),
 }
 
 /** Drawer destinations behind "More" (desktop pages without a bottom tab). */
 enum class MoreScreen(val route: String, val label: String, val description: String) {
-    ARTIFACTS(Routes.ARTIFACTS, "Artifacts", "Previews and generated files"),
+    SESSIONS(Routes.SESSIONS, "Sessions", "All conversations"),
+    CRON(Routes.CRON, "Cron", "Scheduled jobs"),
     MESSAGING(Routes.MESSAGING, "Messaging", "Connected channels"),
     WORKSPACE(Routes.WORKSPACE, "Workspace", "Server files"),
     PROFILES(Routes.PROFILES, "Profiles", "Connections and server profiles"),

@@ -3,6 +3,8 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- In-app updater (Settings → About) downloads release APKs via DownloadManager. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <!-- Remote gateways are often plain HTTP over a tailnet/VPN; production
          hosts should still use HTTPS. Mirrors the desktop remote-gateway mode. -->

@@ -76,81 +76,71 @@ data class HermesPalette(
     val dark: Boolean,
 )
 
-/** Computes the full palette from the desktop seeds. Mirrors styles.css. */
+/**
+ * Computes the full palette from the cinematic mobile scheme (DESIGN v1.0 §01).
+ *
+ * The approved mobile look is dark-first and fixed: deep blue-black canvas
+ * #0A0F17, card surface #121826, accent #3B82F6, hairlines #1F2A3A. Both modes
+ * share those surfaces so the app always renders the approved scheme; light
+ * mode only lifts body text readability. Mirrors styles.css in shape so every
+ * existing call site keeps working.
+ */
 fun hermesPalette(dark: Boolean): HermesPalette {
-    val baseHex = if (dark) HermesSeeds.BASE_DARK else HermesSeeds.BASE_LIGHT
-    val base = baseHex.toColor()
-    val accent = HermesSeeds.PRIMARY.toColor()
-
-    // --theme-mix-* knobs per mode (chrome 92/74, card 22/38, elevated 28/46).
-    val cardMix = if (dark) 0.38 else 0.22
-    val elevatedMix = if (dark) 0.46 else 0.28
-    val neutralCard = if (dark) HermesSeeds.NEUTRAL_CARD_DARK else HermesSeeds.NEUTRAL_CARD_LIGHT
-
-    // --ui-bg-card / --ui-bg-elevated: seed mixed over the neutral card.
-    val card = mix(HermesSeeds.CARD_SEED, neutralCard, 1 - cardMix).toColor()
-    val elevated = mix(HermesSeeds.ELEVATED_SEED, neutralCard, 1 - elevatedMix).toColor()
-    // --theme-bubble-seed: accent 6% over white (light); dark mixes toward card.
-    val bubble = if (dark) {
-        val accentSoft = mix(HermesSeeds.PRIMARY, "#ffffff", 0.9)
-        mix(accentSoft, neutralCard, 0.54).toColor()
-    } else {
-        mix(HermesSeeds.PRIMARY, "#ffffff", 0.94).toColor()
-    }
-
-    // Text hierarchy: base at 94 / 74 / 54 / 36%.
-    fun text(alpha: Float) = base.copy(alpha = alpha)
-
-    // Strokes: accent-tinted base hairlines (light 24/10, 16/7, 10/5, 6/3).
-    fun stroke(accentMix: Double, alpha: Float): Color {
-        val solid = mix(HermesSeeds.PRIMARY, baseHex, 1 - accentMix).toColor()
-        return solid.copy(alpha = alpha)
-    }
-
+    // Cinematic mobile scheme — fixed surfaces in both modes.
+    val bg = "#0A0F17".toColor()
+    val surface = "#121826".toColor()
+    val accent = "#3B82F6".toColor()
+    val bright = "#E6ECF3".toColor()
+    val muted = "#8B98A7".toColor()
+    val hairline = "#1F2A3A".toColor()
+    val onAccent = Color.White
+    // ponytail: single dark-first scheme; per-mode derivation removed —
+    // reintroduce only if a light scheme is ever approved.
     return HermesPalette(
-        base = base,
+        base = bright,
         accent = accent,
-        background = if (dark) HermesSeeds.NEUTRAL_CHROME_DARK.toColor() else HermesSeeds.BG_SEED.toColor(),
-        sidebar = if (dark) HermesSeeds.NEUTRAL_SIDEBAR_DARK.toColor() else HermesSeeds.SIDEBAR_SEED.toColor(),
-        card = card,
-        elevated = elevated,
-        bubble = bubble,
-        input = neutralCard.toColor(),
-        textPrimary = text(0.94f),
-        textSecondary = text(0.74f),
-        textTertiary = text(0.54f),
-        textQuaternary = text(0.36f),
-        strokePrimary = stroke(0.24, 0.35f),
-        strokeSecondary = stroke(0.16, 0.28f),
-        strokeTertiary = stroke(0.10, 0.22f),
-        strokeQuaternary = stroke(0.06, 0.16f),
-        // --stroke-nous is currentColor at 3%; lifted to 8% as the mobile
-        // visibility floor (1dp hairlines alias to invisible at 3%).
-        strokeNous = base.copy(alpha = 0.08f),
-        red = (if (dark) HermesSeeds.RED_DARK else HermesSeeds.RED_LIGHT).toColor(),
+        background = bg,
+        sidebar = bg,
+        card = surface,
+        elevated = surface,
+        bubble = "#18233A".toColor(),
+        input = surface,
+        textPrimary = bright,
+        textSecondary = muted,
+        textTertiary = muted.copy(alpha = 0.7f),
+        textQuaternary = muted.copy(alpha = 0.5f),
+        strokePrimary = hairline,
+        strokeSecondary = hairline,
+        strokeTertiary = hairline.copy(alpha = 0.7f),
+        strokeQuaternary = hairline.copy(alpha = 0.5f),
+        strokeNous = hairline.copy(alpha = 0.5f),
+        red = "#F87171".toColor(),
         orange = HermesSeeds.ORANGE.toColor(),
-        yellow = HermesSeeds.YELLOW.toColor(),
-        green = (if (dark) HermesSeeds.GREEN_DARK else HermesSeeds.GREEN_LIGHT).toColor(),
-        cyan = (if (dark) HermesSeeds.CYAN_DARK else HermesSeeds.CYAN_LIGHT).toColor(),
-        blue = HermesSeeds.PRIMARY.toColor(),
-        purple = HermesSeeds.PURPLE.toColor(),
+        yellow = "#FBBF24".toColor(),
+        green = "#34D399".toColor(),
+        cyan = "#22D3EE".toColor(),
+        blue = accent,
+        purple = "#A78BFA".toColor(),
         warm = HermesSeeds.WARM.toColor(),
-        onAccent = readableOn(HermesSeeds.PRIMARY).toColor(),
+        onAccent = onAccent,
         dark = dark,
     )
 }
 
-/** Layout constants — mirrors apps/desktop/src/app/layout-constants.ts. */
+/** Layout constants — cinematic mobile scheme (DESIGN v1.0 §05). */
 object HermesLayout {
     /** PAGE_INSET_X: page side padding. */
     const val PAGE_INSET_X = 16
+    /** Card corner radius (dp). */
+    const val CARD_RADIUS = 12
+    /** Control corner radius (dp). */
+    const val CONTROL_RADIUS = 8
     /** Borderless overlay elevation (shadow-nous equivalent, dp). */
     const val OVERLAY_ELEVATION = 12
     /** Menu/popover elevation (shadow-md equivalent, dp). */
     const val MENU_ELEVATION = 6
     /** Icon buttons share a 4px radius; controls use 8px. */
     const val ICON_RADIUS = 4
-    const val CONTROL_RADIUS = 8
     /** Quick functional transitions (~100ms on controls). */
     const val MOTION_MS = 100
 }

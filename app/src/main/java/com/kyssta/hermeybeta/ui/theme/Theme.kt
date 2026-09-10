@@ -8,6 +8,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.material3.Typography
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+
+private val CineTypography = Typography(
+    bodyLarge = TextStyle(fontFamily = HermesSans, fontSize = 15.sp, lineHeight = 22.sp),
+    bodyMedium = TextStyle(fontFamily = HermesSans, fontSize = 13.sp, lineHeight = 19.sp),
+    titleLarge = TextStyle(fontFamily = HermesSans, fontWeight = FontWeight.SemiBold, fontSize = 17.sp),
+    titleMedium = TextStyle(fontFamily = HermesSans, fontWeight = FontWeight.SemiBold, fontSize = 15.sp),
+    labelLarge = TextStyle(fontFamily = HermesSans, fontWeight = FontWeight.Medium, fontSize = 13.sp),
+)
 
 private val LocalPalette = compositionLocalOf { hermesPalette(dark = true) }
 
@@ -76,6 +88,6 @@ fun HermeyBetaTheme(
         )
     }
     CompositionLocalProvider(LocalPalette provides palette) {
-        MaterialTheme(colorScheme = scheme, content = content)
+        MaterialTheme(colorScheme = scheme, typography = CineTypography, content = content)
     }
 }

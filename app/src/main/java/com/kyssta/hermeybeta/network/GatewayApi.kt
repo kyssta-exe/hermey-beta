@@ -301,6 +301,39 @@ class GatewayApi(baseUrl: String, private val onUnauthorized: () -> Unit = {}) {
 
     suspend fun switchProfile(name: String): JSONObject =
         JSONObject(post("/api/profiles/active", JSONObject().put("name", name)))
+
+    // ── Kanban (tasks board plugin) ───────────────────────────────────────
+    suspend fun kanbanBoard(): JSONObject = JSONObject(get("/api/plugins/kanban/board"))
+
+    suspend fun createKanbanTask(title: String, body: String? = null): JSONObject =
+        JSONObject(
+            post(
+                "/api/plugins/kanban/tasks",
+                JSONObject().put("title", title).apply { body?.let { put("body", it) } },
+            ),
+        )
+
+    suspend fun updateKanbanTask(taskId: String, patch: JSONObject): JSONObject =
+        JSONObject(patch("/api/plugins/kanban/tasks/${enc(taskId)}", patch))
+
+    suspend fun moveKanbanTask(taskId: String, status: String): JSONObject =
+        updateKanbanTask(taskId, JSONObject().put("status", status))
+
+    suspend fun kanbanComment(taskId: String, body: String): JSONObject =
+        JSONObject(
+            post("/api/plugins/kanban/tasks/${enc(taskId)}/comments", JSONObject().put("body", body)),
+        )
+
+    // ── Auxiliary models ────────────────────────────────────────────────
+    suspend fun auxiliaryModels(): JSONObject = JSONObject(get("/api/model/auxiliary"))
+
+    suspend fun setModelAssignment(model: String, provider: String, scope: String, task: String): JSONObject =
+        JSONObject(
+            post(
+                "/api/model/set",
+                JSONObject().put("model", model).put("provider", provider).put("scope", scope).put("task", task),
+            ),
+        )
 }
 
 fun gatewayErrorMessage(e: Throwable): String = when (e) {

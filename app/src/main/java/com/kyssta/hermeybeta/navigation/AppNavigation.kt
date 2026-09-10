@@ -2,11 +2,11 @@ package com.kyssta.hermeybeta.navigation
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChatBubbleOutline
-import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.outlined.Dashboard
+import androidx.compose.material.icons.outlined.Extension
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -53,6 +53,7 @@ import com.kyssta.hermeybeta.ui.screens.SessionsScreen
 import com.kyssta.hermeybeta.ui.screens.SettingsScreen
 import com.kyssta.hermeybeta.ui.screens.SkillsScreen
 import com.kyssta.hermeybeta.ui.screens.StarmapScreen
+import com.kyssta.hermeybeta.ui.screens.TasksScreen
 import com.kyssta.hermeybeta.ui.screens.ToolsScreen
 import com.kyssta.hermeybeta.ui.screens.WorkspaceScreen
 import com.kyssta.hermeybeta.ui.theme.Hermes
@@ -61,11 +62,10 @@ import kotlinx.coroutines.launch
 private data class Tab(val item: TopLevel, val icon: ImageVector)
 
 private val TABS = listOf(
-    Tab(TopLevel.CHAT, Icons.Filled.ChatBubbleOutline),
-    Tab(TopLevel.SESSIONS, Icons.Filled.Groups),
-    Tab(TopLevel.CRON, Icons.Filled.Schedule),
-    Tab(TopLevel.SKILLS, Icons.Filled.School),
-    Tab(TopLevel.MORE, Icons.Filled.Menu),
+    Tab(TopLevel.CHAT, Icons.Outlined.ChatBubbleOutline),
+    Tab(TopLevel.TASKS, Icons.Outlined.Dashboard),
+    Tab(TopLevel.SKILLS, Icons.Outlined.Extension),
+    Tab(TopLevel.SETTINGS, Icons.Outlined.Settings),
 )
 
 /**
@@ -125,21 +125,20 @@ fun AppNavigation() {
         },
     ) {
         Scaffold(
+            containerColor = p.background,
             bottomBar = {
-                NavigationBar(containerColor = p.sidebar) {
+                NavigationBar(containerColor = p.background) {
                     TABS.forEach { tab ->
                         val selected = when (tab.item) {
                             TopLevel.CHAT -> route.startsWith("chat")
-                            TopLevel.SESSIONS -> route == Routes.SESSIONS
-                            TopLevel.CRON -> route == Routes.CRON
+                            TopLevel.TASKS -> route == Routes.TASKS
                             TopLevel.SKILLS -> route == Routes.SKILLS
-                            TopLevel.MORE -> MoreScreen.entries.any { it.route == route } || route == Routes.SETTINGS || route == Routes.PROFILES
+                            TopLevel.SETTINGS -> route == Routes.SETTINGS
                         }
                         NavigationBarItem(
                             selected = selected,
                             onClick = {
                                 when (tab.item) {
-                                    TopLevel.MORE -> scope.launch { drawer.open() }
                                     TopLevel.CHAT -> nav.navigate(Routes.chat()) {
                                         popUpTo(nav.graph.startDestinationId)
                                         launchSingleTop = true
@@ -150,8 +149,8 @@ fun AppNavigation() {
                                     }
                                 }
                             },
-                            icon = { Icon(tab.icon, contentDescription = tab.item.label) },
-                            label = { Text(tab.item.label) },
+                            icon = { Icon(tab.icon, contentDescription = tab.item.label, tint = if (selected) p.accent else p.textSecondary) },
+                            label = { Text(tab.item.label, color = if (selected) p.accent else p.textSecondary) },
                         )
                     }
                 }
@@ -178,6 +177,7 @@ fun AppNavigation() {
                         onOpenSessions = { nav.navigate(Routes.SESSIONS) { popUpTo(nav.graph.startDestinationId) } },
                     )
                 }
+                composable(Routes.TASKS) { TasksScreen() }
                 composable(Routes.SESSIONS) {
                     SessionsScreen(
                         onOpenChat = { id -> nav.navigate(Routes.chat(id)) },

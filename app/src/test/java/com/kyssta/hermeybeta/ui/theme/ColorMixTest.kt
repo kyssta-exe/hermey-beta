@@ -61,11 +61,12 @@ class ColorMixTest {
     }
 
     @Test
-    fun paletteDiffersByMode() {
+    fun paletteSharesFixedSurfaces() {
+        // Cinematic mobile scheme is dark-first and fixed; only the flag differs.
         val light = hermesPalette(false)
         val dark = hermesPalette(true)
-        assertTrue(light.background != dark.background)
-        assertTrue(light.card != dark.card)
+        assertEquals(light.background, dark.background)
+        assertEquals(light.card, dark.card)
         assertEquals(false, light.dark)
         assertEquals(true, dark.dark)
     }
