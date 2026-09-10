@@ -622,7 +622,13 @@ fun ChatScreen(
             ) {
                 HermesButton(
                     "+",
-                    onClick = { pickImage.launch(ActivityResultContracts.PickVisualMedia.ImageOnly) },
+                    onClick = {
+                        pickImage.launch(
+                            androidx.activity.result.PickVisualMediaRequest(
+                                ActivityResultContracts.PickVisualMedia.ImageOnly,
+                            ),
+                        )
+                    },
                     variant = HermesVariant.Text,
                     size = HermesSize.Sm,
                 )
