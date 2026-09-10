@@ -336,7 +336,7 @@ private fun AuthWebView(url: String, modifier: Modifier = Modifier, onPageDone: 
                 val wv = this
                 CookieManager.getInstance().apply {
                     setAcceptCookie(true)
-                    acceptThirdPartyCookies(wv, true)
+                    setAcceptThirdPartyCookies(wv, true)
                 }
                 webViewClient = object : WebViewClient() {
                     override fun onPageFinished(view: WebView, finishedUrl: String) {
