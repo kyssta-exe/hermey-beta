@@ -253,3 +253,4 @@ private fun SessionRow(
             }
         }
     }
+}

@@ -67,7 +67,7 @@ class GatewayApi(baseUrl: String) {
         withContext(Dispatchers.IO) {
             val req = Request.Builder().url(buildUrl(base, path, query)).get().build()
             client.newCall(req).execute().use { resp ->
-                val body = resp.body.string()
+                val body = resp.body?.string() ?: ""
                 if (!resp.isSuccessful) throw GatewayHttpException(resp.code, extractDetail(body))
                 body
             }
@@ -80,7 +80,7 @@ class GatewayApi(baseUrl: String) {
                 .post(json.toString().toRequestBody("application/json".toMediaType()))
                 .build()
             client.newCall(req).execute().use { resp ->
-                val body = resp.body.string()
+                val body = resp.body?.string() ?: ""
                 if (!resp.isSuccessful) throw GatewayHttpException(resp.code, extractDetail(body))
                 body
             }
@@ -93,7 +93,7 @@ class GatewayApi(baseUrl: String) {
                 .patch(json.toString().toRequestBody("application/json".toMediaType()))
                 .build()
             client.newCall(req).execute().use { resp ->
-                val body = resp.body.string()
+                val body = resp.body?.string() ?: ""
                 if (!resp.isSuccessful) throw GatewayHttpException(resp.code, extractDetail(body))
                 body
             }
@@ -103,7 +103,7 @@ class GatewayApi(baseUrl: String) {
         withContext(Dispatchers.IO) {
             val req = Request.Builder().url(buildUrl(base, path)).delete().build()
             client.newCall(req).execute().use { resp ->
-                val body = resp.body.string()
+                val body = resp.body?.string() ?: ""
                 if (!resp.isSuccessful) throw GatewayHttpException(resp.code, extractDetail(body))
                 body
             }
@@ -116,7 +116,7 @@ class GatewayApi(baseUrl: String) {
                 .put(json.toString().toRequestBody("application/json".toMediaType()))
                 .build()
             client.newCall(req).execute().use { resp ->
-                val body = resp.body.string()
+                val body = resp.body?.string() ?: ""
                 if (!resp.isSuccessful) throw GatewayHttpException(resp.code, extractDetail(body))
                 body
             }

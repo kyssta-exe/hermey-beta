@@ -128,7 +128,7 @@ fun CronScreen() {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Column(Modifier.weight(1f)) {
                                         Text(job.name ?: "?", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = p.textPrimary)
-                                        Text(job.scheduleLabel(), fontSize = 12.sp, color = p.textTertiary)
+                                        Text(job.schedule, fontSize = 12.sp, color = p.textTertiary)
                                     }
                                     if (job.isPaused()) {
                                         Text("paused", fontSize = 12.sp, color = p.yellow)
