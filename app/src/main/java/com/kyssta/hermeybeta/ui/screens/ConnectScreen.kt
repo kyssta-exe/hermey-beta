@@ -3,6 +3,7 @@ package com.kyssta.hermeybeta.ui.screens
 import android.app.Application
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -34,6 +35,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.kyssta.hermeybeta.auth.ConnectionStore
 import com.kyssta.hermeybeta.auth.GatewayMode
 import com.kyssta.hermeybeta.auth.ServerConnection
+import com.kyssta.hermeybeta.network.AuthProvider
+import com.kyssta.hermeybeta.network.GatewayApi
 import com.kyssta.hermeybeta.network.gatewayErrorMessage
 import com.kyssta.hermeybeta.network.normalizeRemoteBaseUrl
 import com.kyssta.hermeybeta.session.SessionRepository
@@ -51,6 +54,35 @@ class ConnectViewModel(app: Application) : AndroidViewModel(app) {
     val store = ConnectionStore(app)
     var busy by mutableStateOf(false)
     var error by mutableStateOf<String?>(null)
+
+    // Remote probe: the suitable options appear after the URL is checked.
+    var probing by mutableStateOf(false)
+    var probedUrl by mutableStateOf<String?>(null)
+    var probedProviders by mutableStateOf<List<AuthProvider>?>(null)
+
+    fun probe(baseUrl: String) {
+        if (probing) return
+        probing = true
+        error = null
+        viewModelScope.launch {
+            try {
+                val norm = normalizeRemoteBaseUrl(baseUrl)
+                probedProviders = GatewayApi(norm, {}).authProviders()
+                probedUrl = norm
+            } catch (e: Exception) {
+                error = gatewayErrorMessage(e)
+                probedProviders = null
+                probedUrl = null
+            } finally {
+                probing = false
+            }
+        }
+    }
+
+    fun resetProbe() {
+        probedUrl = null
+        probedProviders = null
+    }
 
     /** Remote or cloud login. Returns the activated connection, or null. */
     fun connect(
@@ -115,7 +147,7 @@ class ConnectViewModel(app: Application) : AndroidViewModel(app) {
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ConnectScreen(onConnected: () -> Unit, onCloudSignIn: () -> Unit = {}) {
+fun ConnectScreen(onConnected: () -> Unit, onCloudSignIn: () -> Unit = {}, onRemoteOAuth: (String) -> Unit = {}) {
     val vm: ConnectViewModel = viewModel()
     val p = Hermes
     val expired by SessionRepository.reauthNeeded.collectAsState()
@@ -181,15 +213,50 @@ fun ConnectScreen(onConnected: () -> Unit, onCloudSignIn: () -> Unit = {}) {
                     color = p.textTertiary,
                 )
             }
-            OutlinedTextField(
-                value = serverUrl,
-                onValueChange = { serverUrl = it },
-                label = { Text(if (modeIdx == 0) "Server URL" else "Hosted gateway URL") },
-                placeholder = { Text("https://hermes.example.com") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-            )
+            val probed = vm.probedProviders
+            val passwordCapable = modeIdx == 1 || probed == null ||
+                probed.any { it.supportsPassword == true }
+            if (modeIdx == 0 && probed == null) {
+                OutlinedTextField(
+                    value = serverUrl,
+                    onValueChange = { serverUrl = it },
+                    label = { Text("Server URL") },
+                    placeholder = { Text("https://hermes.example.com") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                )
+                if (vm.probing) {
+                    Loader()
+                } else {
+                    HermesButton(
+                        "Check",
+                        onClick = { vm.probe(serverUrl) },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = serverUrl.isNotBlank(),
+                    )
+                }
+            } else {
+                if (modeIdx == 0) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            vm.probedUrl ?: serverUrl,
+                            fontSize = 13.sp,
+                            color = p.textSecondary,
+                            modifier = Modifier.weight(1f),
+                        )
+                        HermesButton(
+                            "Change",
+                            onClick = { vm.resetProbe() },
+                            variant = HermesVariant.Text,
+                            size = HermesSize.Sm,
+                        )
+                    }
+                }
+                if (passwordCapable) {
             OutlinedTextField(
                 value = username,
                 onValueChange = { username = it },
@@ -215,15 +282,30 @@ fun ConnectScreen(onConnected: () -> Unit, onCloudSignIn: () -> Unit = {}) {
                     onClick = {
                         vm.connect(
                             if (modeIdx == 0) GatewayMode.REMOTE else GatewayMode.CLOUD,
-                            serverUrl,
+                            if (modeIdx == 0) vm.probedUrl ?: serverUrl else serverUrl,
                             username,
                             password,
                             onDone = { onConnected() },
                         )
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = serverUrl.isNotBlank(),
+                    enabled = (if (modeIdx == 0) vm.probedUrl ?: serverUrl else serverUrl).isNotBlank(),
                 )
+            }
+                } else {
+                    Text(
+                        "This gateway uses browser sign-in:",
+                        fontSize = 13.sp,
+                        color = p.textSecondary,
+                    )
+                    probed?.forEach { provider ->
+                        HermesButton(
+                            "Log in with ${provider.displayName ?: provider.name ?: "SSO"}",
+                            onClick = { vm.probedUrl?.let { onRemoteOAuth(it) } },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                }
             }
             vm.error?.let {
                 ErrorState(title = "Connection failed", description = it)

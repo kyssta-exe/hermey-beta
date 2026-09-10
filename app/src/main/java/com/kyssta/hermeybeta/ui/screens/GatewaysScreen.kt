@@ -97,7 +97,7 @@ fun GatewaysScreen(onAddGateway: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Gateways", color = p.textPrimary) },
+                title = { Text("Profiles", color = p.textPrimary) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = p.sidebar),
                 actions = {
                     HermesButton("Add", onClick = onAddGateway, variant = HermesVariant.Ghost, size = HermesSize.Sm)

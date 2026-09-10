@@ -8,6 +8,7 @@ package com.kyssta.hermeybeta.navigation
 object Routes {
     const val CONNECT = "connect"
     const val CLOUD_SIGNIN = "cloud-signin"
+    const val OAUTH_LOGIN = "oauth-login?base={base}"
     const val CHAT = "chat?sessionId={sessionId}"
     const val SESSIONS = "sessions"
     const val SKILLS = "skills"
@@ -26,6 +27,9 @@ object Routes {
     const val SETTINGS = "settings"
 
     fun chat(sessionId: String = "") = if (sessionId.isBlank()) "chat?sessionId=" else "chat?sessionId=$sessionId"
+
+    fun oauthLogin(baseUrl: String) =
+        "oauth-login?base=${java.net.URLEncoder.encode(baseUrl, "UTF-8")}"
 }
 
 enum class TopLevel(val route: String, val label: String) {
@@ -41,7 +45,7 @@ enum class MoreScreen(val route: String, val label: String, val description: Str
     ARTIFACTS(Routes.ARTIFACTS, "Artifacts", "Previews and generated files"),
     MESSAGING(Routes.MESSAGING, "Messaging", "Connected channels"),
     WORKSPACE(Routes.WORKSPACE, "Workspace", "Server files"),
-    PROFILES(Routes.PROFILES, "Gateways", "Remote and cloud connections"),
+    PROFILES(Routes.PROFILES, "Profiles", "Connections and server profiles"),
     AGENTS(Routes.AGENTS, "Agents", "Live runs and processes"),
     STARMAP(Routes.STARMAP, "Starmap", "Run history"),
     INSIGHTS(Routes.INSIGHTS, "Insights", "Usage analytics"),

@@ -299,26 +299,39 @@ fun CloudSignInScreen(onDone: () -> Unit, onCancel: () -> Unit) {
                             color = p.textSecondary,
                             modifier = Modifier.padding(vertical = 4.dp),
                         )
-                        AuthWebView(
-                            url = agent.dashboardUrl,
+                        GatewayWebLogin(
+                            baseUrl = agent.dashboardUrl,
                             modifier = Modifier.weight(1f),
-                            onPageDone = {
-                                if (hasGatewaySession(vm.agentCookies(agent.dashboardUrl))) {
-                                    vm.onAgentSession(agent.dashboardUrl, onDone = { onDone() })
-                                }
-                            },
+                            cookiesFor = { vm.agentCookies(agent.dashboardUrl) },
+                            onSessionCookies = { vm.onAgentSession(agent.dashboardUrl, onDone = { onDone() }) },
                         )
-                        LaunchedEffect(agent.id) {
-                            while (vm.stage == CloudStage.CASCADE) {
-                                delay(750)
-                                if (hasGatewaySession(vm.agentCookies(agent.dashboardUrl))) {
-                                    vm.onAgentSession(agent.dashboardUrl, onDone = { onDone() })
-                                }
-                            }
-                        }
                     }
                 }
             }
+        }
+    }
+}
+
+/** Shared gateway login surface: protected root + cookie poll (desktop login-window equivalent). */
+@Composable
+fun GatewayWebLogin(
+    baseUrl: String,
+    modifier: Modifier = Modifier,
+    cookiesFor: () -> String?,
+    onSessionCookies: () -> Unit,
+) {
+    AuthWebView(
+        url = baseUrl.trimEnd('/') + "/",
+        modifier = modifier,
+        onPageDone = {
+            if (hasGatewaySession(cookiesFor())) onSessionCookies()
+        },
+    )
+    // Belt-and-braces poll for IDPs that finish via in-page JS.
+    LaunchedEffect(baseUrl) {
+        while (true) {
+            delay(750)
+            if (hasGatewaySession(cookiesFor())) onSessionCookies()
         }
     }
 }

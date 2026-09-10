@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -59,6 +60,7 @@ import com.kyssta.hermeybeta.ui.components.HermesSheet
 import com.kyssta.hermeybeta.ui.components.HermesSize
 import com.kyssta.hermeybeta.ui.components.HermesVariant
 import com.kyssta.hermeybeta.ui.components.Loader
+import com.kyssta.hermeybeta.ui.components.SearchField
 import com.kyssta.hermeybeta.ui.theme.Hermes
 import com.kyssta.hermeybeta.ui.theme.HermesLayout
 import kotlinx.coroutines.CompletableDeferred
@@ -107,6 +109,7 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
     var slashItems by mutableStateOf<List<SlashItem>>(emptyList())
     var usageLabel by mutableStateOf<String?>(null)
     var notFound by mutableStateOf(false)
+    var thinking by mutableStateOf(false)
 
     private var ws: GatewayWs? = null
     private var loop: Job? = null
@@ -198,6 +201,7 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
         input = ""
         slashItems = emptyList()
         error = null
+        thinking = false
         if (text.startsWith("/")) {
             sendSlash(text)
             return
@@ -457,11 +461,21 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
                     .ifBlank { p.optString("content") }
                     .ifBlank { p.optString("delta") }
                 if (chunk.isNotBlank()) {
+                    thinking = false
                     val row = messages.lastOrNull { it is UiMsg.Assistant && !it.done } as? UiMsg.Assistant
                     if (row != null) row.text += chunk
                     else messages += UiMsg.Assistant(chunk, done = false)
                     streaming = true
                 }
+            }
+            "message.start" -> streaming = true
+            "thinking.delta", "reasoning.delta", "reasoning.available" -> {
+                if (p.optString("text").isNotBlank()) thinking = true
+                streaming = true
+            }
+            "error" -> {
+                val detail = p.optString("message").ifBlank { "turn failed" }
+                failTurn(detail.take(500))
             }
             "message.complete" -> {
                 val text = p.optString("text")
@@ -515,7 +529,22 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun finalizeStream() {
         streaming = false
+        thinking = false
         (messages.lastOrNull { it is UiMsg.Assistant && !it.done } as? UiMsg.Assistant)?.done = true
+        refreshUsage()
+    }
+
+    /** Terminal turn failure — never strand an eternal "…". */
+    private fun failTurn(detail: String) {
+        thinking = false
+        val row = messages.lastOrNull { it is UiMsg.Assistant && !it.done } as? UiMsg.Assistant
+        if (row != null) {
+            if (row.text.isBlank()) row.text = "Error: $detail"
+            row.done = true
+        } else {
+            error = detail
+        }
+        streaming = false
         refreshUsage()
     }
 
@@ -587,7 +616,12 @@ fun ChatScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Column {
+                    Column(
+                        Modifier.clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                        ) { showModels = true },
+                    ) {
                         Text(
                             vm.model?.model ?: "Chat",
                             color = p.textPrimary,
@@ -597,7 +631,11 @@ fun ChatScreen(
                         )
                         Text(
                             vm.usageLabel ?: when (vm.socketState) {
-                                "open" -> if (vm.streaming) "responding…" else "connected"
+                                "open" -> when {
+                                    vm.thinking -> "thinking…"
+                                    vm.streaming -> "responding…"
+                                    else -> "connected"
+                                }
                                 else -> vm.socketState
                             },
                             color = p.textTertiary,
@@ -614,9 +652,6 @@ fun ChatScreen(
                 actions = {
                     if (vm.streaming) {
                         HermesButton("Stop", onClick = { vm.interrupt() }, variant = HermesVariant.Text, size = HermesSize.Sm)
-                    }
-                    if (vm.modelOptions.isNotEmpty()) {
-                        HermesButton("Model", onClick = { showModels = true }, variant = HermesVariant.Text, size = HermesSize.Sm)
                     }
                     HermesButton("Session", onClick = { showSessionMenu = true }, variant = HermesVariant.Text, size = HermesSize.Sm)
                 },
@@ -912,28 +947,51 @@ private fun ModelSheet(
     onDismiss: () -> Unit,
 ) {
     val p = Hermes
+    var query by remember { mutableStateOf("") }
     HermesSheet(onDismissRequest = onDismiss) {
         Column(
             Modifier.padding(horizontal = HermesLayout.PAGE_INSET_X.dp).padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Text("Model", fontWeight = FontWeight.SemiBold, color = p.textPrimary, modifier = Modifier.padding(bottom = 8.dp))
-            options.forEach { (provider, models) ->
-                Text(provider, fontSize = 12.sp, color = p.textTertiary)
-                models.forEach { m ->
-                    Row(
-                        Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            m,
-                            color = p.textPrimary,
-                            fontSize = 15.sp,
-                            fontWeight = if (m == current) FontWeight.Bold else FontWeight.Normal,
-                            modifier = Modifier.weight(1f),
-                        )
-                        if (m != current) {
-                            HermesButton("Use", onClick = { onPick(m) }, variant = HermesVariant.Text, size = HermesSize.Sm)
+            Text("Model", fontWeight = FontWeight.SemiBold, color = p.textPrimary)
+            if (options.sumOf { it.second.size } > 6) {
+                SearchField(value = query, onValueChange = { query = it }, placeholder = "Search models")
+            }
+            LazyColumn(Modifier.fillMaxWidth()) {
+                options.forEach { (provider, models) ->
+                    val rows = models.filter { query.isBlank() || it.contains(query, ignoreCase = true) }
+                    if (rows.isNotEmpty()) {
+                        item(key = "h:$provider") {
+                            Text(
+                                "$provider · ${models.size}",
+                                fontSize = 12.sp,
+                                color = p.textTertiary,
+                                modifier = Modifier.padding(top = 8.dp),
+                            )
+                        }
+                        items(rows, key = { "m:$provider:$it" }) { m ->
+                            Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable(
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null,
+                                    ) { onPick(m) }
+                                    .padding(vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    m,
+                                    color = p.textPrimary,
+                                    fontSize = 15.sp,
+                                    fontWeight = if (m == current) FontWeight.Bold else FontWeight.Normal,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                if (m == current) {
+                                    Text("current", fontSize = 12.sp, color = p.green)
+                                }
+                            }
+                            HorizontalDivider(color = p.strokeQuaternary, thickness = 0.5.dp)
                         }
                     }
                 }

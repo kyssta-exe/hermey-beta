@@ -47,6 +47,7 @@ import com.kyssta.hermeybeta.ui.screens.AgentsScreen
 import com.kyssta.hermeybeta.ui.screens.McpScreen
 import com.kyssta.hermeybeta.ui.screens.MemoryScreen
 import com.kyssta.hermeybeta.ui.screens.MessagingScreen
+import com.kyssta.hermeybeta.ui.screens.OAuthLoginScreen
 import com.kyssta.hermeybeta.ui.screens.PairingScreen
 import com.kyssta.hermeybeta.ui.screens.SessionsScreen
 import com.kyssta.hermeybeta.ui.screens.SettingsScreen
@@ -88,7 +89,11 @@ fun AppNavigation() {
     }
 
     if (conn == null || reauth) {
-        ConnectScreen(onConnected = { SessionRepository.clearReauth() })
+        val authNav = rememberNavController()
+        AuthGraph(
+            nav = authNav,
+            onAuthed = { SessionRepository.clearReauth() },
+        )
         return
     }
 
@@ -204,23 +209,57 @@ fun AppNavigation() {
                         onManageGateways = { nav.navigate(Routes.PROFILES) },
                     )
                 }
-                composable(Routes.CONNECT) {
-                    ConnectScreen(
-                        onConnected = { nav.popBackStack() },
-                        onCloudSignIn = { nav.navigate(Routes.CLOUD_SIGNIN) },
-                    )
-                }
-                composable(Routes.CLOUD_SIGNIN) {
-                    CloudSignInScreen(
-                        onDone = {
-                            // Fresh login lands home; drop the whole back stack.
-                            while (nav.popBackStack()) {
-                            }
-                        },
-                        onCancel = { nav.popBackStack() },
-                    )
-                }
+                AuthGraph(
+                    nav = nav,
+                    onAuthed = { nav.popBackStack() },
+                )
             }
         }
     }
+}
+
+/** Auth destinations, shared by the logged-out shell and the add-gateway flow. */
+private fun androidx.navigation.NavGraphBuilder.AuthGraph(
+    nav: androidx.navigation.NavHostController,
+    onAuthed: () -> Unit,
+) {
+    composable(Routes.CONNECT) {
+        ConnectScreen(
+            onConnected = { onAuthed() },
+            onCloudSignIn = { nav.navigate(Routes.CLOUD_SIGNIN) },
+            onRemoteOAuth = { base -> nav.navigate(Routes.oauthLogin(base)) },
+        )
+    }
+    composable(Routes.CLOUD_SIGNIN) {
+        CloudSignInScreen(
+            onDone = {
+                // Fresh login lands home; drop the whole back stack.
+                while (nav.popBackStack()) {
+                }
+            },
+            onCancel = { nav.popBackStack() },
+        )
+    }
+    composable(
+        Routes.OAUTH_LOGIN,
+        arguments = listOf(navArgument("base") {
+            type = NavType.StringType
+            defaultValue = ""
+        }),
+    ) { entry ->
+        OAuthLoginScreen(
+            baseUrl = decodeBase(entry.arguments?.getString("base") ?: ""),
+            onDone = {
+                while (nav.popBackStack()) {
+                }
+            },
+            onCancel = { nav.popBackStack() },
+        )
+    }
+}
+
+private fun decodeBase(raw: String): String = try {
+    java.net.URLDecoder.decode(raw, "UTF-8")
+} catch (_: Exception) {
+    raw
 }
