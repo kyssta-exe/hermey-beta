@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -103,18 +104,19 @@ fun CineTopBar(
     )
 }
 
-/** Hero wordmark: Playfair Black, always two lines, centered. */
+/** Hero wordmark: Collapse Bold, single line — desktop intro parity. */
 @Composable
-fun CineHero(text: String = "HERMES\nAGENT", modifier: Modifier = Modifier) {
+fun CineHero(text: String = "HERMES AGENT", modifier: Modifier = Modifier) {
     Text(
         text = text,
         modifier = modifier,
         color = Hermes.textPrimary,
         fontFamily = HermesDisplay,
-        fontWeight = FontWeight.Black,
-        fontSize = 52.sp,
-        lineHeight = 54.sp,
-        letterSpacing = 1.sp,
+        fontWeight = FontWeight.Bold,
+        fontSize = 48.sp,
+        lineHeight = 44.sp,
+        letterSpacing = 4.sp,
+        maxLines = 1,
     )
 }
 
@@ -139,6 +141,6 @@ fun LaneHeader(dot: Color, name: String, count: Int, modifier: Modifier = Modifi
 
 /** Single-line muted description text used under headings. */
 @Composable
-fun CineSub(text: String, modifier: Modifier = Modifier) {
-    Text(text, modifier = modifier, color = Hermes.textSecondary, fontFamily = HermesSans, fontSize = 13.sp, lineHeight = 19.sp)
+fun CineSub(text: String, modifier: Modifier = Modifier, align: TextAlign = TextAlign.Start) {
+    Text(text, modifier = modifier, color = Hermes.textSecondary, fontFamily = HermesSans, fontSize = 13.sp, lineHeight = 19.sp, textAlign = align)
 }

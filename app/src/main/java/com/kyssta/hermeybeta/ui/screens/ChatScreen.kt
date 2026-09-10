@@ -25,13 +25,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Build
-import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.SmartToy
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -53,6 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kyssta.hermeybeta.ui.theme.HermesMono
@@ -65,7 +61,6 @@ import com.kyssta.hermeybeta.network.ModelInfo
 import com.kyssta.hermeybeta.network.WsFrame
 import com.kyssta.hermeybeta.network.gatewayErrorMessage
 import com.kyssta.hermeybeta.session.SessionRepository
-import com.kyssta.hermeybeta.ui.components.CineCard
 import com.kyssta.hermeybeta.ui.components.CineHero
 import com.kyssta.hermeybeta.ui.components.CineSub
 import com.kyssta.hermeybeta.ui.components.ErrorState
@@ -78,7 +73,6 @@ import com.kyssta.hermeybeta.ui.components.Loader
 import com.kyssta.hermeybeta.ui.components.SearchField
 import com.kyssta.hermeybeta.ui.theme.Hermes
 import com.kyssta.hermeybeta.ui.theme.HermesLayout
-import com.kyssta.hermeybeta.ui.theme.HermesSans
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -897,10 +891,9 @@ fun ChatScreen(
     }
 }
 
-/** DESIGN 01 home: hero wordmark, muted standfirst, three equal cards. */
+/** Desktop intro parity: Collapse wordmark + rotating body copy, no cards. */
 @Composable
 private fun ColumnScope.NewChatEmptyState() {
-    val p = Hermes
     Column(
         Modifier
             .weight(1f)
@@ -912,28 +905,11 @@ private fun ColumnScope.NewChatEmptyState() {
     ) {
         CineHero()
         Spacer(Modifier.height(12.dp))
-        CineSub("Describe the task in your own words. I will pick the right tools, explain my plan, and check in before risky steps.")
-        Spacer(Modifier.height(20.dp))
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            CineCard(modifier = Modifier.weight(1f)) {
-                Icon(Icons.Outlined.Build, contentDescription = null, tint = p.blue, modifier = Modifier.padding(bottom = 8.dp))
-                Text("Build", color = p.textPrimary, fontFamily = HermesSans, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                Text("Turn ideas into working software", color = p.textSecondary, fontFamily = HermesSans, fontSize = 12.sp, lineHeight = 16.sp)
-            }
-            CineCard(modifier = Modifier.weight(1f)) {
-                Icon(Icons.Outlined.Search, contentDescription = null, tint = p.blue, modifier = Modifier.padding(bottom = 8.dp))
-                Text("Research", color = p.textPrimary, fontFamily = HermesSans, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                Text("Find, analyze and synthesize", color = p.textSecondary, fontFamily = HermesSans, fontSize = 12.sp, lineHeight = 16.sp)
-            }
-            CineCard(modifier = Modifier.weight(1f)) {
-                Icon(Icons.Outlined.SmartToy, contentDescription = null, tint = p.blue, modifier = Modifier.padding(bottom = 8.dp))
-                Text("Automate", color = p.textPrimary, fontFamily = HermesSans, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                Text("Use tools, run jobs and get results", color = p.textSecondary, fontFamily = HermesSans, fontSize = 12.sp, lineHeight = 16.sp)
-            }
-        }
+        CineSub(
+            "Describe the task in your own words. I will pick the right tools, explain my plan, and check in before risky steps.",
+            modifier = Modifier.fillMaxWidth(),
+            align = TextAlign.Center,
+        )
     }
 }
 

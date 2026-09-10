@@ -16,21 +16,16 @@ val HermesMono = FontFamily(
 )
 
 /**
- * UI face — Inter (variable, OFL). One file covers every weight; Compose
- * picks the instance closest to the requested [FontWeight].
+ * UI face — the system sans stack, exactly like desktop (Segoe/SF/system-ui;
+ * Roboto on Android). No bundled file; desktop ships no sans webfont either.
  */
-val HermesSans = FontFamily(
-    Font(R.font.inter, FontWeight.Light),
-    Font(R.font.inter, FontWeight.Normal),
-    Font(R.font.inter, FontWeight.Medium),
-    Font(R.font.inter, FontWeight.SemiBold),
-    Font(R.font.inter, FontWeight.Bold),
-)
+val HermesSans: FontFamily = FontFamily.SansSerif
 
 /**
- * Hero/brand face — Playfair Display (variable, OFL). Display Black for the
- * HERMES AGENT wordmark and editorial moments only; never body text.
+ * Hero/brand face — Collapse Bold, the face desktop bundles
+ * (@nous-research/ui, woff2 converted to ttf; OFL-licensed). Desktop renders
+ * the HERMES AGENT wordmark in Collapse 700 — never a serif.
  */
 val HermesDisplay = FontFamily(
-    Font(R.font.playfair_display, FontWeight.Black),
+    Font(R.font.collapse_bold, FontWeight.Bold),
 )
