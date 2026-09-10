@@ -90,10 +90,12 @@ fun AppNavigation() {
 
     if (conn == null || reauth) {
         val authNav = rememberNavController()
-        AuthGraph(
-            nav = authNav,
-            onAuthed = { SessionRepository.clearReauth() },
-        )
+        NavHost(navController = authNav, startDestination = Routes.CONNECT) {
+            AuthGraph(
+                nav = authNav,
+                onAuthed = { SessionRepository.clearReauth() },
+            )
+        }
         return
     }
 
