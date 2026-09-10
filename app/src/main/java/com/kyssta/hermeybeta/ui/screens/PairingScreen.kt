@@ -88,6 +88,33 @@ class PairingViewModel(app: Application) : AndroidViewModel(app) {
             }
         }
     }
+
+    fun revoke(user: PairUser) {
+        busyId = user.userId
+        viewModelScope.launch {
+            try {
+                val conn = SessionRepository.connection.value ?: return@launch
+                SessionRepository.apiFor(conn).revokePairing(user.platform, user.userId)
+                load(force = true)
+            } catch (e: Exception) {
+                error = gatewayErrorMessage(e)
+            } finally {
+                busyId = null
+            }
+        }
+    }
+
+    fun clearPending() {
+        viewModelScope.launch {
+            try {
+                val conn = SessionRepository.connection.value ?: return@launch
+                SessionRepository.apiFor(conn).clearPendingPairing()
+                load(force = true)
+            } catch (e: Exception) {
+                error = gatewayErrorMessage(e)
+            }
+        }
+    }
 }
 
 /** Pairing — approve pending device/channel pairing requests. */
@@ -105,6 +132,11 @@ fun PairingScreen() {
             TopAppBar(
                 title = { Text("Pairing", color = p.textPrimary) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = p.sidebar),
+                actions = {
+                    if (vm.pending.isNotEmpty()) {
+                        HermesButton("Clear", onClick = { vm.clearPending() }, variant = HermesVariant.Text, size = HermesSize.Sm)
+                    }
+                },
             )
         },
     ) { padding ->
@@ -169,12 +201,24 @@ fun PairingScreen() {
                                 Text("Approved", fontSize = 12.sp, color = p.textTertiary, modifier = Modifier.padding(vertical = 8.dp))
                             }
                             items(vm.approved, key = { "a" + it.platform + it.userId }) { u ->
-                                Column(
+                                Row(
                                     Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
                                 ) {
-                                    Text(u.label, fontSize = 15.sp, color = p.textPrimary)
-                                    if (u.platform.isNotBlank()) Text(u.platform, fontSize = 12.sp, color = p.textTertiary)
+                                    Column(
+                                        Modifier.weight(1f),
+                                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                                    ) {
+                                        Text(u.label, fontSize = 15.sp, color = p.textPrimary)
+                                        if (u.platform.isNotBlank()) Text(u.platform, fontSize = 12.sp, color = p.textTertiary)
+                                    }
+                                    HermesButton(
+                                        "Revoke",
+                                        onClick = { vm.revoke(u) },
+                                        variant = HermesVariant.Text,
+                                        size = HermesSize.Sm,
+                                        enabled = vm.busyId == null,
+                                    )
                                 }
                                 HorizontalDivider(color = p.strokeTertiary, thickness = 0.5.dp)
                             }

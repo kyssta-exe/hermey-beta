@@ -238,10 +238,39 @@ class GatewayApi(baseUrl: String) {
             ),
         )
 
+    suspend fun revokePairing(platform: String, userId: String) {
+        post(
+            "/api/pairing/revoke",
+            JSONObject().put("platform", platform).put("user_id", userId),
+        )
+    }
+
+    suspend fun clearPendingPairing() {
+        post("/api/pairing/clear-pending")
+    }
+
     // ── MCP ───────────────────────────────────────────────────────────────
     suspend fun mcpServers(): JSONObject = JSONObject(get("/api/mcp/servers"))
 
     suspend fun mcpCatalog(): JSONObject = JSONObject(get("/api/mcp/catalog"))
+
+    suspend fun setMcpEnabled(name: String, enabled: Boolean) {
+        put("/api/mcp/servers/${enc(name)}/enabled", JSONObject().put("enabled", enabled))
+    }
+
+    suspend fun deleteMcpServer(name: String) {
+        delete("/api/mcp/servers/${enc(name)}")
+    }
+
+    suspend fun testMcpServer(name: String): JSONObject =
+        JSONObject(post("/api/mcp/servers/${enc(name)}/test"))
+
+    suspend fun installMcp(name: String, env: JSONObject = JSONObject(), enable: Boolean = true) {
+        post(
+            "/api/mcp/catalog/install",
+            JSONObject().put("name", name).put("env", env).put("enable", enable),
+        )
+    }
 
     // ── Analytics ─────────────────────────────────────────────────────────
     suspend fun analyticsUsage(days: Int): JSONObject =
@@ -254,6 +283,9 @@ class GatewayApi(baseUrl: String) {
     suspend fun profiles(): JSONObject = JSONObject(get("/api/profiles"))
 
     suspend fun activeProfile(): JSONObject = JSONObject(get("/api/profiles/active"))
+
+    suspend fun switchProfile(name: String): JSONObject =
+        JSONObject(post("/api/profiles/active", JSONObject().put("name", name)))
 }
 
 fun gatewayErrorMessage(e: Throwable): String = when (e) {

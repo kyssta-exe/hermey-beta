@@ -13,13 +13,22 @@ Remote gateway and cloud gateway only (mirrors the desktop connection switch min
 
 ## Features (desktop route parity)
 
-- Chat — streaming transcript, tool calls, clarify + approval prompts, model picker, stop
+- Chat — streaming transcript, tool calls, clarify + approval prompts, model picker, stop, slash commands with server autocomplete, image/file attachments, voice input, context usage meter, rename/compress/branch/close
 - Sessions — list, search, pin, archive, delete
-- Skills — browse and toggle
-- Cron — scheduled jobs, pause/resume
-- Gateways — remote/cloud connection profiles, workspace re-home on switch
+- Skills — browse and toggle, hub search/install/reload
+- MCP — servers (toggle/test/delete), catalog install with secret prompts
+- Tools — tool + toolset catalogs
+- Cron — full CRUD (add/remove/pause/resume)
+- Gateways — remote/cloud connections plus server-side profile switching
+- Workspace — server file browser, text preview, new folders
+- Messaging — channel adapter states
+- Pairing — approve/revoke/clear device requests
+- Agents — live gateway processes, jump to session
+- Starmap — cross-session run history
+- Insights — sessions/messages cards, per-model analytics (7/30/90 days)
+- Memory — status + scoped reset
 - Settings — active model, memory status, appearance (system/light/dark), sign out
-- Artifacts, Messaging, Agents, Starmap — structure ported; light up as the gateway exposes them
+- Artifacts — structure ported; lights up as the gateway exposes it
 
 ## Design
 

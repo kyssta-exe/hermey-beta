@@ -42,6 +42,7 @@ import com.kyssta.hermeybeta.ui.screens.CronScreen
 import com.kyssta.hermeybeta.ui.screens.GatewaysScreen
 import com.kyssta.hermeybeta.ui.screens.InsightsScreen
 import com.kyssta.hermeybeta.ui.screens.AgentsScreen
+import com.kyssta.hermeybeta.ui.screens.McpScreen
 import com.kyssta.hermeybeta.ui.screens.MemoryScreen
 import com.kyssta.hermeybeta.ui.screens.MessagingScreen
 import com.kyssta.hermeybeta.ui.screens.PairingScreen
@@ -49,6 +50,7 @@ import com.kyssta.hermeybeta.ui.screens.SessionsScreen
 import com.kyssta.hermeybeta.ui.screens.SettingsScreen
 import com.kyssta.hermeybeta.ui.screens.SkillsScreen
 import com.kyssta.hermeybeta.ui.screens.StarmapScreen
+import com.kyssta.hermeybeta.ui.screens.ToolsScreen
 import com.kyssta.hermeybeta.ui.screens.WorkspaceScreen
 import com.kyssta.hermeybeta.ui.theme.Hermes
 import kotlinx.coroutines.launch
@@ -189,6 +191,8 @@ fun AppNavigation() {
                 composable(Routes.INSIGHTS) { InsightsScreen() }
                 composable(Routes.MEMORY) { MemoryScreen() }
                 composable(Routes.PAIRING) { PairingScreen() }
+                composable(Routes.MCP) { McpScreen() }
+                composable(Routes.TOOLS) { ToolsScreen() }
                 composable(Routes.SETTINGS) {
                     SettingsScreen(
                         onSignOut = {},

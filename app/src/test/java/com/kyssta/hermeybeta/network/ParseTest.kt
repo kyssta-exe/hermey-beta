@@ -2,6 +2,8 @@ package com.kyssta.hermeybeta.network
 
 import com.kyssta.hermeybeta.ui.screens.formatSize
 import com.kyssta.hermeybeta.ui.screens.formatUptime
+import com.kyssta.hermeybeta.ui.screens.parseMcpCatalog
+import com.kyssta.hermeybeta.ui.screens.parseToolEntries
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -71,5 +73,20 @@ class ParseTest {
         assertEquals(2, snaps[0].subagentCount)
         assertEquals("1h 1m", formatUptime(3700))
         assertEquals("45s", formatUptime(45))
+    }
+
+    @Test
+    fun mcpCatalogAndTools() {
+        val cat = parseMcpCatalog(
+            JSONObject("""{"entries":[{"name":"gh","description":"GitHub","transport":"http","required_env":[{"name":"GH_TOKEN","prompt":"GitHub token"}]}]}"""),
+        )
+        assertEquals(1, cat.size)
+        assertEquals("GH_TOKEN", cat[0].requiredEnv[0].first)
+        val tools = parseToolEntries(
+            JSONObject("""{"tools":[{"name":"read","description":"Read a file"},"plain"]}"""),
+            "tools",
+        )
+        assertEquals(2, tools.size)
+        assertEquals("", tools[1].second)
     }
 }

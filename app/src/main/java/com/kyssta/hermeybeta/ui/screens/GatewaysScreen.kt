@@ -15,8 +15,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -26,6 +31,8 @@ import androidx.compose.ui.unit.sp
 import com.kyssta.hermeybeta.auth.ConnectionStore
 import com.kyssta.hermeybeta.auth.GatewayMode
 import com.kyssta.hermeybeta.network.GatewayCookieJar
+import com.kyssta.hermeybeta.network.ServerProfile
+import com.kyssta.hermeybeta.network.parseProfiles
 import com.kyssta.hermeybeta.session.SessionRepository
 import com.kyssta.hermeybeta.ui.components.EmptyState
 import com.kyssta.hermeybeta.ui.components.HermesButton
@@ -34,6 +41,7 @@ import com.kyssta.hermeybeta.ui.components.HermesVariant
 import com.kyssta.hermeybeta.ui.components.ListRow
 import com.kyssta.hermeybeta.ui.theme.Hermes
 import com.kyssta.hermeybeta.ui.theme.HermesLayout
+import kotlinx.coroutines.launch
 
 /**
  * Gateways — the mobile form of the desktop profiles/gateway switch.
@@ -48,7 +56,42 @@ fun GatewaysScreen(onAddGateway: () -> Unit) {
     val store = ConnectionStore(ctx)
     val connections by store.connections.collectAsState()
     val activeId by store.activeId.collectAsState()
+    val activeConn by SessionRepository.connection.collectAsState()
     val p = Hermes
+    val scope = rememberCoroutineScope()
+    var switchError by remember { mutableStateOf<String?>(null) }
+
+    // Server-side profiles live on the gateway (desktop profiles page).
+    var serverProfiles by remember { mutableStateOf<List<ServerProfile>>(emptyList()) }
+    var serverActive by remember { mutableStateOf<String?>(null) }
+
+    fun switchServerProfile(name: String, onSwitched: () -> Unit) {
+        val c = activeConn ?: return
+        scope.launch {
+            try {
+                SessionRepository.apiFor(c).switchProfile(name)
+                serverActive = name
+                onSwitched()
+            } catch (e: Exception) {
+                switchError = com.kyssta.hermeybeta.network.gatewayErrorMessage(e)
+            }
+        }
+    }
+    LaunchedEffect(activeConn) {
+        val c = activeConn
+        if (c == null) {
+            serverProfiles = emptyList()
+        } else {
+            try {
+                val api = SessionRepository.apiFor(c)
+                serverProfiles = parseProfiles(api.profiles())
+                val active = api.activeProfile()
+                serverActive = active.optString("active").ifBlank { active.optString("name") }.ifBlank { null }
+            } catch (_: Exception) {
+                serverProfiles = emptyList()
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -67,6 +110,7 @@ fun GatewaysScreen(onAddGateway: () -> Unit) {
                 .padding(padding)
                 .padding(horizontal = HermesLayout.PAGE_INSET_X.dp),
         ) {
+            switchError?.let { Text(it, fontSize = 13.sp, color = p.red) }
             if (connections.isEmpty()) {
                 EmptyState(
                     title = "No gateways",
@@ -117,6 +161,46 @@ fun GatewaysScreen(onAddGateway: () -> Unit) {
                             }
                         }
                         HorizontalDivider(color = p.strokeTertiary, thickness = 0.5.dp)
+                    }
+                    if (serverProfiles.isNotEmpty()) {
+                        item {
+                            Text(
+                                "Server profiles",
+                                fontSize = 12.sp,
+                                color = p.textTertiary,
+                                modifier = Modifier.padding(vertical = 8.dp),
+                            )
+                        }
+                        items(serverProfiles, key = { "sp:" + it.name }) { sp ->
+                            val isActive = sp.name == serverActive
+                            Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Column(Modifier.weight(1f)) {
+                                        Text(sp.name, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = p.textPrimary)
+                                        val sub = listOfNotNull(
+                                            sp.model,
+                                            if (sp.skillCount > 0) "${sp.skillCount} skills" else null,
+                                        ).joinToString(" · ")
+                                        if (sub.isNotEmpty()) Text(sub, fontSize = 12.sp, color = p.textTertiary)
+                                    }
+                                    if (isActive) Text("active", fontSize = 12.sp, color = p.green)
+                                    else if (sp.isDefault) Text("default", fontSize = 12.sp, color = p.textTertiary)
+                                }
+                                if (!isActive) {
+                                    HermesButton(
+                                        "Switch",
+                                        onClick = {
+                                            switchServerProfile(sp.name) {
+                                                activeConn?.let { SessionRepository.activate(it) }
+                                            }
+                                        },
+                                        variant = HermesVariant.Text,
+                                        size = HermesSize.Sm,
+                                    )
+                                }
+                            }
+                            HorizontalDivider(color = p.strokeTertiary, thickness = 0.5.dp)
+                        }
                     }
                 }
             }

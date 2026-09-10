@@ -20,6 +20,8 @@ object Routes {
     const val INSIGHTS = "insights"
     const val MEMORY = "memory"
     const val PAIRING = "pairing"
+    const val MCP = "mcp"
+    const val TOOLS = "tools"
     const val SETTINGS = "settings"
 
     fun chat(sessionId: String = "") = if (sessionId.isBlank()) "chat?sessionId=" else "chat?sessionId=$sessionId"
@@ -44,5 +46,7 @@ enum class MoreScreen(val route: String, val label: String, val description: Str
     INSIGHTS(Routes.INSIGHTS, "Insights", "Usage analytics"),
     MEMORY(Routes.MEMORY, "Memory", "Agent memory"),
     PAIRING(Routes.PAIRING, "Pairing", "Device approvals"),
+    MCP(Routes.MCP, "MCP", "Model context servers"),
+    TOOLS(Routes.TOOLS, "Tools", "Tool catalog"),
     SETTINGS(Routes.SETTINGS, "Settings", "Models, appearance, connection"),
 }
