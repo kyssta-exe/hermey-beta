@@ -38,12 +38,13 @@ import com.kyssta.hermeybeta.auth.ConnectionStore
 import com.kyssta.hermeybeta.session.SessionRepository
 import com.kyssta.hermeybeta.ui.screens.ChatScreen
 import com.kyssta.hermeybeta.ui.screens.CloudSignInScreen
-import com.kyssta.hermeybeta.ui.screens.ComingFromDesktopScreen
 import com.kyssta.hermeybeta.ui.screens.ConnectScreen
 import com.kyssta.hermeybeta.ui.screens.CronScreen
 import com.kyssta.hermeybeta.ui.screens.GatewaysScreen
 import com.kyssta.hermeybeta.ui.screens.InsightsScreen
 import com.kyssta.hermeybeta.ui.screens.AgentsScreen
+import com.kyssta.hermeybeta.ui.screens.ArtifactsScreen
+import com.kyssta.hermeybeta.ui.screens.CommandCenterScreen
 import com.kyssta.hermeybeta.ui.screens.McpScreen
 import com.kyssta.hermeybeta.ui.screens.MemoryScreen
 import com.kyssta.hermeybeta.ui.screens.MessagingScreen
@@ -55,6 +56,8 @@ import com.kyssta.hermeybeta.ui.screens.SkillsScreen
 import com.kyssta.hermeybeta.ui.screens.StarmapScreen
 import com.kyssta.hermeybeta.ui.screens.TasksScreen
 import com.kyssta.hermeybeta.ui.screens.ToolsScreen
+import com.kyssta.hermeybeta.ui.screens.WebhooksScreen
+import com.kyssta.hermeybeta.ui.screens.SessionImportScreen
 import com.kyssta.hermeybeta.ui.screens.WorkspaceScreen
 import com.kyssta.hermeybeta.ui.theme.Hermes
 import kotlinx.coroutines.launch
@@ -187,7 +190,7 @@ fun AppNavigation() {
                 composable(Routes.CRON) { CronScreen() }
                 composable(Routes.SKILLS) { SkillsScreen() }
                 composable(Routes.ARTIFACTS) {
-                    ComingFromDesktopScreen("Artifacts", "Previews, files, review and terminal panes attach to the current task on desktop.")
+                    ArtifactsScreen(onOpenSession = { id -> nav.navigate(Routes.chat(id)) })
                 }
                 composable(Routes.MESSAGING) { MessagingScreen() }
                 composable(Routes.WORKSPACE) { WorkspaceScreen() }
@@ -205,6 +208,13 @@ fun AppNavigation() {
                 composable(Routes.PAIRING) { PairingScreen() }
                 composable(Routes.MCP) { McpScreen() }
                 composable(Routes.TOOLS) { ToolsScreen() }
+                composable(Routes.WEBHOOKS) { WebhooksScreen() }
+                composable(Routes.COMMAND_CENTER) {
+                    CommandCenterScreen(onOpenSession = { id -> nav.navigate(Routes.chat(id)) })
+                }
+                composable(Routes.SESSION_IMPORT) {
+                    SessionImportScreen(onOpenSession = { id -> nav.navigate(Routes.chat(id)) })
+                }
                 composable(Routes.SETTINGS) {
                     SettingsScreen(
                         onSignOut = {},

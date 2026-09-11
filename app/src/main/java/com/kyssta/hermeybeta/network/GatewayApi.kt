@@ -388,6 +388,44 @@ class GatewayApi(baseUrl: String, private val onUnauthorized: () -> Unit = {}) {
 
     suspend fun actionStatus(name: String, lines: Int = 60): JSONObject =
         JSONObject(get("/api/actions/${enc(name)}/status", mapOf("lines" to lines.toString())))
+
+    // ── System (Command Center → System; mirrors desktop api/config.ts) ─────
+    suspend fun status(): JSONObject = JSONObject(get("/api/status"))
+
+    suspend fun logs(
+        file: String? = null,
+        lines: Int = 200,
+        level: String? = null,
+        search: String? = null,
+    ): JSONObject = JSONObject(
+        get(
+            "/api/logs",
+            mapOf(
+                "file" to file,
+                "lines" to lines.toString(),
+                "level" to level?.takeUnless { it == "ALL" },
+                "search" to search?.takeUnless { it.isBlank() },
+            ),
+        ),
+    )
+
+    // ── Starmap graph (REST contract stays /api/learning/* — see desktop) ───
+    suspend fun starmapGraph(): JSONObject = JSONObject(get("/api/learning/graph"))
+
+    // ── Webhooks (mirrors desktop api/messaging.ts) ─────────────────────────
+    suspend fun webhooks(): JSONObject = JSONObject(get("/api/webhooks"))
+
+    suspend fun enableWebhooks(): JSONObject = JSONObject(post("/api/webhooks/enable"))
+
+    suspend fun createWebhook(body: JSONObject): JSONObject =
+        JSONObject(post("/api/webhooks", body))
+
+    suspend fun deleteWebhook(name: String) {
+        delete("/api/webhooks/${enc(name)}")
+    }
+
+    suspend fun setWebhookEnabled(name: String, enabled: Boolean): JSONObject =
+        JSONObject(put("/api/webhooks/${enc(name)}/enabled", JSONObject().put("enabled", enabled)))
 }
 
 fun gatewayErrorMessage(e: Throwable): String = when (e) {

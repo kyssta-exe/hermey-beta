@@ -28,7 +28,10 @@ Remote gateway and cloud gateway only (mirrors the desktop connection switch min
 - Insights — sessions/messages cards, per-model analytics (7/30/90 days)
 - Memory — status + scoped reset
 - Settings — active model, memory status, appearance (system/light/dark), sign out
-- Artifacts — structure ported; lights up as the gateway exposes it
+- Artifacts — files/images/links aggregated across sessions (filters, search, open-session jump)
+- Webhooks — receiver enable + subscription CRUD (create/toggle/delete)
+- Command Center — sessions maintenance, system status + logs, usage analytics (7/30/90 days)
+- Session Import — Claude/Codex foreign sessions (list/preview/import)
 
 ## Design
 

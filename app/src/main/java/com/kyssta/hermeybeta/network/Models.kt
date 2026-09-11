@@ -511,3 +511,109 @@ fun parseToolsets(body: String): List<ToolsetInfo> {
         emptyList()
     }
 }
+
+// ─── Webhooks (desktop api/messaging.ts shapes; all fields tolerant) ───────
+data class WebhookSub(
+    val name: String = "",
+    val description: String? = null,
+    val events: List<String> = emptyList(),
+    val deliver: String? = null,
+    val enabled: Boolean = true,
+    val url: String? = null,
+)
+
+data class WebhooksState(
+    val enabled: Boolean = false,
+    val subscriptions: List<WebhookSub> = emptyList(),
+)
+
+fun parseWebhooks(root: JSONObject): WebhooksState {
+    val subs = mutableListOf<WebhookSub>()
+    val arr = root.optJSONArray("subscriptions")
+        ?: root.optJSONArray("webhooks")
+        ?: root.optJSONArray("routes")
+    if (arr != null) {
+        for (i in 0 until arr.length()) {
+            val o = arr.optJSONObject(i) ?: continue
+            val events = mutableListOf<String>()
+            val ev = o.optJSONArray("events")
+            if (ev != null) for (j in 0 until ev.length()) events += ev.optString(j)
+            subs += WebhookSub(
+                name = o.optString("name"),
+                description = o.optString("description").takeUnless { it.isBlank() },
+                events = events,
+                deliver = o.optString("deliver").takeUnless { it.isBlank() }
+                    ?: o.optString("target").takeUnless { it.isBlank() },
+                enabled = o.optBoolean("enabled", true),
+                url = o.optString("url").takeUnless { it.isBlank() },
+            )
+        }
+    }
+    return WebhooksState(
+        enabled = root.optBoolean("enabled", subs.isNotEmpty()),
+        subscriptions = subs,
+    )
+}
+
+// ─── Artifacts (derived from session messages, like desktop artifact-utils) ─
+data class ArtifactRecord(
+    val sessionId: String = "",
+    val sessionTitle: String? = null,
+    val kind: String = "file", // image | file | link
+    val label: String = "",
+    val href: String = "",
+    val timestamp: Double? = null,
+)
+
+private val ARTIFACT_KEY_RE =
+    Regex("^(artifact_(file|image|path|url)|files?_(created|modified|written)|generated_(file|image|path|url)|media_tag|output_(file|path|url)|result_(file|path|url)|saved_to|screenshot_path)$", RegexOption.IGNORE_CASE)
+private val ARTIFACT_FALLBACK_RE =
+    Regex("^(artifacts?(_(file|image|path|url))?|attachments?(_(file|image|path|url))?|downloads?(_(file|path|url))?|(audio|image|video)(_(file|path|url))?|file_path|local_path|media(_(file|path|url))?|path)$", RegexOption.IGNORE_CASE)
+private val URL_RE = Regex("^https?://\\S+$", RegexOption.IGNORE_CASE)
+private val IMAGE_EXT_RE = Regex("\\.(png|jpe?g|gif|webp|bmp|svg)(\\?.*)?$", RegexOption.IGNORE_CASE)
+
+fun artifactKindFor(key: String, value: String): String? {
+    val v = value.trim()
+    if (v.isEmpty()) return null
+    if (v.startsWith("data:image/")) return "image"
+    if (URL_RE.matches(v)) return if (IMAGE_EXT_RE.containsMatchIn(v) || key.contains("image", true)) "image" else "link"
+    if (!ARTIFACT_KEY_RE.matches(key) && !ARTIFACT_FALLBACK_RE.matches(key)) return null
+    if (v.length > 2000 || v.contains("\n")) return null
+    return if (IMAGE_EXT_RE.containsMatchIn(v) || key.contains("image", true)) "image" else "file"
+}
+
+fun artifactLabelFor(value: String): String {
+    val v = value.trim()
+    if (v.startsWith("data:")) return v.substringBefore(",").take(48)
+    val noQuery = v.substringBefore("?")
+    val slash = noQuery.lastIndexOf("/")
+    return (if (slash >= 0) noQuery.substring(slash + 1) else noQuery).take(80).ifBlank { v.take(80) }
+}
+
+// ─── Foreign sessions (Session Import; desktop session-import/api.ts) ──────
+data class ForeignSession(
+    val id: String = "",
+    val source: String = "",
+    val title: String = "",
+    val cwd: String? = null,
+    val excerpt: String = "",
+    val turnCount: Int = 0,
+)
+
+fun parseForeignSessions(root: JSONObject): Pair<List<ForeignSession>, String?> {
+    val out = mutableListOf<ForeignSession>()
+    val arr = root.optJSONArray("sessions") ?: JSONArray()
+    for (i in 0 until arr.length()) {
+        val o = arr.optJSONObject(i) ?: continue
+        out += ForeignSession(
+            id = o.optString("id"),
+            source = o.optString("source"),
+            title = o.optString("title").ifBlank { o.optString("label") },
+            cwd = o.optString("cwd").takeUnless { it.isBlank() },
+            excerpt = o.optString("excerpt"),
+            turnCount = o.optInt("turn_count", 0),
+        )
+    }
+    val host = root.optString("host").takeUnless { it.isBlank() }
+    return out to host
+}

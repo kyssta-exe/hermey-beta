@@ -25,6 +25,9 @@ object Routes {
     const val PAIRING = "pairing"
     const val MCP = "mcp"
     const val TOOLS = "tools"
+    const val WEBHOOKS = "webhooks"
+    const val COMMAND_CENTER = "command-center"
+    const val SESSION_IMPORT = "session-import"
     const val SETTINGS = "settings"
 
     fun chat(sessionId: String = "") = if (sessionId.isBlank()) "chat?sessionId=" else "chat?sessionId=$sessionId"
@@ -54,5 +57,9 @@ enum class MoreScreen(val route: String, val label: String, val description: Str
     PAIRING(Routes.PAIRING, "Pairing", "Device approvals"),
     MCP(Routes.MCP, "MCP", "Model context servers"),
     TOOLS(Routes.TOOLS, "Tools", "Tool catalog"),
+    ARTIFACTS(Routes.ARTIFACTS, "Artifacts", "Files, images, links"),
+    WEBHOOKS(Routes.WEBHOOKS, "Webhooks", "Event subscriptions"),
+    COMMAND_CENTER(Routes.COMMAND_CENTER, "Command Center", "Sessions, system, usage"),
+    SESSION_IMPORT(Routes.SESSION_IMPORT, "Import", "Claude / Codex sessions"),
     SETTINGS(Routes.SETTINGS, "Settings", "Models, appearance, connection"),
 }
