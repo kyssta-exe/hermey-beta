@@ -1005,6 +1005,9 @@ private fun ModelSheet(title: String, options: List<Pair<String, List<String>>>,
         Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
             Text(title, color = p.textPrimary, fontFamily = HermesSans, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
             Spacer(Modifier.height(4.dp))
+            if (options.sumOf { it.second.size } == 0) {
+                CineSub("No models reported by this gateway.")
+            } else {
             SearchField(value = query, onValueChange = { query = it }, placeholder = "Search models")
             Spacer(Modifier.height(8.dp))
             LazyColumn(Modifier.fillMaxWidth().height(420.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -1022,6 +1025,7 @@ private fun ModelSheet(title: String, options: List<Pair<String, List<String>>>,
                         }
                     }
                 }
+            }
             }
             Spacer(Modifier.height(16.dp))
         }

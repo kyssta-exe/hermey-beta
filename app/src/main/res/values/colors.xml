@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Cinematic mobile scheme accent #3B82F6 -->
-    <color name="ic_launcher_background">#3B82F6</color>
+    <!-- BrandMark tile: nous-girl art on white, identical in light/dark (desktop parity) -->
+    <color name="ic_launcher_background">#FFFFFF</color>
 </resources>
