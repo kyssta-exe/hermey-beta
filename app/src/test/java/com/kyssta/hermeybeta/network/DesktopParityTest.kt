@@ -43,4 +43,16 @@ class DesktopParityTest {
         assertEquals(3, list[0].turnCount)
         assertEquals("mac", host)
     }
+
+    @Test
+    fun kanbanDetail() {
+        val d = parseKanbanDetail(
+            JSONObject("""{"comments":[{"author":"a","body":"hi"}],"events":[{"kind":"retry","detail":"x"}],"runs":[{},{}],"unknown_future":1}"""),
+        )
+        assertEquals(1, d.comments.size)
+        assertEquals("hi", d.comments[0].body)
+        assertEquals(1, d.events.size)
+        assertEquals(2, d.runCount)
+        assertEquals(0, parseKanbanDetail(JSONObject("{}")).comments.size)
+    }
 }

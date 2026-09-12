@@ -464,6 +464,51 @@ fun KanbanColumn.lane(): String = when (name) {
     else -> "todo" // triage, todo, scheduled, ready
 }
 
+// ─── Kanban task detail (desktop drawer: comments + events + runs) ─────────
+data class KanbanComment(
+    val author: String? = null,
+    val body: String = "",
+    val createdAt: Long? = null,
+)
+
+data class KanbanEvent(
+    val kind: String = "",
+    val detail: String? = null,
+    val createdAt: Long? = null,
+)
+
+data class KanbanDetail(
+    val comments: List<KanbanComment> = emptyList(),
+    val events: List<KanbanEvent> = emptyList(),
+    val runCount: Int = 0,
+)
+
+fun parseKanbanDetail(root: JSONObject): KanbanDetail {
+    val comments = mutableListOf<KanbanComment>()
+    val carray = root.optJSONArray("comments") ?: JSONArray()
+    for (i in 0 until carray.length()) {
+        val o = carray.optJSONObject(i) ?: continue
+        comments += KanbanComment(
+            author = o.optString("author").takeUnless { it.isBlank() },
+            body = o.optString("body"),
+            createdAt = o.optLong("created_at").takeUnless { it == 0L },
+        )
+    }
+    val events = mutableListOf<KanbanEvent>()
+    val earray = root.optJSONArray("events") ?: JSONArray()
+    for (i in 0 until earray.length()) {
+        val o = earray.optJSONObject(i) ?: continue
+        events += KanbanEvent(
+            kind = o.optString("kind").ifBlank { o.optString("type") },
+            detail = o.optString("detail").takeUnless { it.isBlank() }
+                ?: o.optString("message").takeUnless { it.isBlank() },
+            createdAt = o.optLong("created_at").takeUnless { it == 0L },
+        )
+    }
+    val runs = root.optJSONArray("runs")?.length() ?: 0
+    return KanbanDetail(comments, events, runs)
+}
+
 // ─── Auxiliary models ─────────────────────────────────────────────────────
 data class AuxSlot(val task: String = "", val label: String? = null, val model: String? = null, val provider: String? = null)
 

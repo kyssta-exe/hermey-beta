@@ -42,10 +42,12 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.kyssta.hermeybeta.network.GatewayHttpException
 import com.kyssta.hermeybeta.network.KanbanColumn
+import com.kyssta.hermeybeta.network.KanbanDetail
 import com.kyssta.hermeybeta.network.KanbanTask
 import com.kyssta.hermeybeta.network.gatewayErrorMessage
 import com.kyssta.hermeybeta.network.lane
 import com.kyssta.hermeybeta.network.parseKanbanBoard
+import com.kyssta.hermeybeta.network.parseKanbanDetail
 import com.kyssta.hermeybeta.session.SessionRepository
 import com.kyssta.hermeybeta.ui.components.CineCard
 import com.kyssta.hermeybeta.ui.components.CineTopBar
@@ -149,6 +151,62 @@ class TasksViewModel(app: Application) : AndroidViewModel(app) {
                 busy = true
                 SessionRepository.apiFor(conn).kanbanComment(task.id, body)
                 load(force = true)
+                detail(task.id, silent = true)
+            } catch (e: Exception) {
+                error = gatewayErrorMessage(e)
+            } finally {
+                busy = false
+            }
+        }
+    }
+
+    var detail by mutableStateOf<KanbanDetail?>(null)
+    var detailLoading by mutableStateOf(false)
+
+    fun detail(taskId: String, silent: Boolean = false) {
+        viewModelScope.launch {
+            try {
+                val conn = SessionRepository.connection.value ?: return@launch
+                if (!silent) { detailLoading = true; detail = null }
+                detail = parseKanbanDetail(SessionRepository.apiFor(conn).kanbanTask(taskId))
+            } catch (e: Exception) {
+                if (!silent) error = gatewayErrorMessage(e)
+            } finally {
+                detailLoading = false
+            }
+        }
+    }
+
+    fun clearDetail() { detail = null; detailLoading = false }
+
+    fun edit(task: KanbanTask, title: String, body: String?) {
+        viewModelScope.launch {
+            try {
+                val conn = SessionRepository.connection.value ?: return@launch
+                busy = true
+                SessionRepository.apiFor(conn).updateKanbanTask(
+                    task.id,
+                    org.json.JSONObject().put("title", title).apply { body?.let { put("body", it) } },
+                )
+                load(force = true)
+            } catch (e: Exception) {
+                error = gatewayErrorMessage(e)
+            } finally {
+                busy = false
+            }
+        }
+    }
+
+    fun delete(task: KanbanTask, onDone: () -> Unit) {
+        viewModelScope.launch {
+            try {
+                val conn = SessionRepository.connection.value ?: return@launch
+                busy = true
+                SessionRepository.apiFor(conn).deleteKanbanTask(task.id)
+                selected = null
+                clearDetail()
+                load(force = true)
+                onDone()
             } catch (e: Exception) {
                 error = gatewayErrorMessage(e)
             } finally {
@@ -303,12 +361,17 @@ fun TasksScreen(onMenu: () -> Unit = {}) {
         // Refresh the selection from the reloaded board so counts stay current.
         val live = vm.laneTasks("todo").plus(vm.laneTasks("progress")).plus(vm.laneTasks("done"))
             .firstOrNull { it.id == task.id } ?: task
-        HermesSheet(onDismissRequest = { vm.selected = null }) {
+        LaunchedEffect(live.id) { vm.detail(live.id) }
+        HermesSheet(onDismissRequest = { vm.selected = null; vm.clearDetail() }) {
             TaskDetail(
                 task = live,
                 busy = vm.busy,
+                detail = vm.detail,
+                detailLoading = vm.detailLoading,
                 onMove = { status -> vm.move(live, status) },
                 onComment = { body -> vm.comment(live, body) },
+                onEdit = { title, body -> vm.edit(live, title, body) },
+                onDelete = { vm.delete(live) {} },
             )
         }
     }
@@ -372,24 +435,78 @@ private fun TaskCard(task: KanbanTask, onClick: () -> Unit) {
 }
 
 @Composable
-private fun TaskDetail(task: KanbanTask, busy: Boolean, onMove: (String) -> Unit, onComment: (String) -> Unit) {
+private fun TaskDetail(
+    task: KanbanTask,
+    busy: Boolean,
+    detail: KanbanDetail?,
+    detailLoading: Boolean,
+    onMove: (String) -> Unit,
+    onComment: (String) -> Unit,
+    onEdit: (String, String?) -> Unit,
+    onDelete: () -> Unit,
+) {
     val p = Hermes
     var draft by remember(task.id) { mutableStateOf("") }
+    var editing by remember(task.id) { mutableStateOf(false) }
+    var editTitle by remember(task.id) { mutableStateOf(task.title) }
+    var editBody by remember(task.id) { mutableStateOf(task.body ?: "") }
+    var confirmDelete by remember(task.id) { mutableStateOf(false) }
     Column(
         Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(task.title.ifBlank { "Untitled" }, color = p.textPrimary, fontFamily = HermesSans, fontWeight = FontWeight.SemiBold, fontSize = 17.sp)
-        if (task.body != null) {
-            Text(task.body, color = p.textSecondary, fontFamily = HermesSans, fontSize = 14.sp, lineHeight = 20.sp)
-        }
-        if (task.commentCount > 0) {
-            Text("${task.commentCount} comments", color = p.textTertiary, fontFamily = HermesSans, fontSize = 12.sp)
+        if (!editing) {
+            Text(task.title.ifBlank { "Untitled" }, color = p.textPrimary, fontFamily = HermesSans, fontWeight = FontWeight.SemiBold, fontSize = 17.sp)
+            if (task.body != null) {
+                Text(task.body, color = p.textSecondary, fontFamily = HermesSans, fontSize = 14.sp, lineHeight = 20.sp)
+            }
+        } else {
+            OutlinedTextField(value = editTitle, onValueChange = { editTitle = it }, label = { Text("Title") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = editBody, onValueChange = { editBody = it }, label = { Text("Details") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                HermesButton("Save", onClick = { onEdit(editTitle.trim(), editBody.trim().takeUnless { it.isBlank() }); editing = false },
+                    enabled = editTitle.isNotBlank() && !busy, size = HermesSize.Sm)
+                HermesButton("Cancel", onClick = { editing = false; editTitle = task.title; editBody = task.body ?: "" },
+                    variant = HermesVariant.Text, size = HermesSize.Sm)
+            }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (task.assignee != null) Text("Assignee: ${task.assignee}", color = p.textTertiary, fontFamily = HermesSans, fontSize = 12.sp)
+            if (task.priority != 0) Text("P${task.priority}", color = p.textTertiary, fontFamily = HermesSans, fontSize = 12.sp)
+            if (detail != null && detail.runCount > 0) Text("${detail.runCount} runs", color = p.textTertiary, fontFamily = HermesSans, fontSize = 12.sp)
+        }
+        // Full desktop status set: todo / running / blocked / review / done.
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             HermesButton("To Do", onClick = { onMove("todo") }, variant = HermesVariant.Secondary, size = HermesSize.Sm, enabled = !busy)
-            HermesButton("In Progress", onClick = { onMove("running") }, variant = HermesVariant.Secondary, size = HermesSize.Sm, enabled = !busy)
+            HermesButton("Running", onClick = { onMove("running") }, variant = HermesVariant.Secondary, size = HermesSize.Sm, enabled = !busy)
+            HermesButton("Blocked", onClick = { onMove("blocked") }, variant = HermesVariant.Secondary, size = HermesSize.Sm, enabled = !busy)
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            HermesButton("Review", onClick = { onMove("review") }, variant = HermesVariant.Secondary, size = HermesSize.Sm, enabled = !busy)
             HermesButton("Done", onClick = { onMove("done") }, variant = HermesVariant.Secondary, size = HermesSize.Sm, enabled = !busy)
+            if (!editing) HermesButton("Edit", onClick = { editing = true }, variant = HermesVariant.Text, size = HermesSize.Sm)
+            HermesButton("Delete", onClick = { confirmDelete = true }, variant = HermesVariant.Destructive, size = HermesSize.Sm, enabled = !busy)
+        }
+        if (detailLoading) {
+            Loader(modifier = Modifier.fillMaxWidth())
+        } else if (detail != null) {
+            if (detail.comments.isNotEmpty()) {
+                Text("Comments (${detail.comments.size})", color = p.textPrimary, fontFamily = HermesSans, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                detail.comments.takeLast(20).forEach { c ->
+                    Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                        if (c.author != null) Text(c.author, color = p.textTertiary, fontFamily = HermesSans, fontSize = 12.sp)
+                        Text(c.body, color = p.textSecondary, fontFamily = HermesSans, fontSize = 13.sp)
+                    }
+                }
+            }
+            if (detail.events.isNotEmpty()) {
+                Text("History", color = p.textPrimary, fontFamily = HermesSans, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                detail.events.takeLast(10).forEach { e ->
+                    Text("${e.kind}${e.detail?.let { ": $it" } ?: ""}", color = p.textTertiary, fontFamily = HermesSans, fontSize = 12.sp)
+                }
+            }
+        } else if (task.commentCount > 0) {
+            Text("${task.commentCount} comments", color = p.textTertiary, fontFamily = HermesSans, fontSize = 12.sp)
         }
         OutlinedTextField(
             value = draft,
@@ -403,6 +520,15 @@ private fun TaskDetail(task: KanbanTask, busy: Boolean, onMove: (String) -> Unit
             onClick = { onComment(draft.trim()); draft = "" },
             enabled = draft.isNotBlank() && !busy,
             modifier = Modifier.align(Alignment.End),
+        )
+    }
+    if (confirmDelete) {
+        HermesDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text("Delete task?") },
+            text = { Text("Delete \"${task.title.ifBlank { task.id }}\"? This cannot be undone.") },
+            confirmButton = { HermesButton("Delete", onClick = { confirmDelete = false; onDelete() }, variant = HermesVariant.Destructive) },
+            dismissButton = { HermesButton("Cancel", onClick = { confirmDelete = false }, variant = HermesVariant.Text) },
         )
     }
 }

@@ -329,6 +329,13 @@ class GatewayApi(baseUrl: String, private val onUnauthorized: () -> Unit = {}) {
             post("/api/plugins/kanban/tasks/${enc(taskId)}/comments", JSONObject().put("body", body)),
         )
 
+    suspend fun kanbanTask(taskId: String): JSONObject =
+        JSONObject(get("/api/plugins/kanban/tasks/${enc(taskId)}"))
+
+    suspend fun deleteKanbanTask(taskId: String) {
+        delete("/api/plugins/kanban/tasks/${enc(taskId)}")
+    }
+
     // ── Auxiliary models ────────────────────────────────────────────────
     suspend fun auxiliaryModels(): JSONObject = JSONObject(get("/api/model/auxiliary"))
 
