@@ -36,6 +36,7 @@ import com.kyssta.hermeybeta.network.parseSpawnEntries
 import com.kyssta.hermeybeta.session.SessionRepository
 import com.kyssta.hermeybeta.session.WsRpc
 import com.kyssta.hermeybeta.ui.components.EmptyState
+import com.kyssta.hermeybeta.ui.components.MenuNavButton
 import com.kyssta.hermeybeta.ui.components.ErrorState
 import com.kyssta.hermeybeta.ui.components.Loader
 import com.kyssta.hermeybeta.ui.theme.Hermes
@@ -78,7 +79,8 @@ class StarmapViewModel(app: Application) : AndroidViewModel(app) {
 /** Starmap — cross-session run history (spawn snapshots, mobile form). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StarmapScreen(onOpenSession: (String) -> Unit) {
+fun StarmapScreen(onOpenSession: (String) -> Unit,
+    onMenu: () -> Unit = {}) {
     val vm: StarmapViewModel = viewModel()
     val conn by SessionRepository.connection.collectAsState()
     val p = Hermes
@@ -89,6 +91,7 @@ fun StarmapScreen(onOpenSession: (String) -> Unit) {
         topBar = {
             TopAppBar(
                 title = { Text("Starmap", color = p.textPrimary) },
+                navigationIcon = { MenuNavButton(onMenu) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = p.sidebar),
             )
         },

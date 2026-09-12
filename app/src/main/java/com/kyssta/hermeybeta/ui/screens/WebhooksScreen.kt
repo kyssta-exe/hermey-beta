@@ -42,6 +42,7 @@ import com.kyssta.hermeybeta.network.gatewayErrorMessage
 import com.kyssta.hermeybeta.network.parseWebhooks
 import com.kyssta.hermeybeta.session.SessionRepository
 import com.kyssta.hermeybeta.ui.components.EmptyState
+import com.kyssta.hermeybeta.ui.components.MenuNavButton
 import com.kyssta.hermeybeta.ui.components.ErrorState
 import com.kyssta.hermeybeta.ui.components.HermesButton
 import com.kyssta.hermeybeta.ui.components.HermesSize
@@ -140,7 +141,7 @@ class WebhooksViewModel(app: Application) : AndroidViewModel(app) {
 /** Webhooks — desktop parity: receiver enable + subscription CRUD. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WebhooksScreen() {
+fun WebhooksScreen(onMenu: () -> Unit = {}) {
     val vm: WebhooksViewModel = viewModel()
     val conn by SessionRepository.connection.collectAsState()
     val p = Hermes
@@ -162,6 +163,7 @@ fun WebhooksScreen() {
         topBar = {
             TopAppBar(
                 title = { Text("Webhooks", color = p.textPrimary) },
+                navigationIcon = { MenuNavButton(onMenu) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = p.sidebar),
                 actions = {
                     HermesButton("New", onClick = { createdUrl = null; createdSecret = null; createOpen = true },

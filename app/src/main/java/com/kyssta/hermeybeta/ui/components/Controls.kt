@@ -13,10 +13,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -94,6 +98,16 @@ fun HermesButton(
         HermesVariant.TextStrong -> TextButton(onClick = onClick, modifier = modifier, enabled = enabled) {
             Text(text, fontSize = textSize, color = p.textPrimary, fontWeight = FontWeight.Bold, textDecoration = TextDecoration.Underline)
         }
+    }
+}
+
+/**
+ * Drawer opener for every top bar — one hamburger, Hermes tint, no restyling per screen.
+ */
+@Composable
+fun MenuNavButton(onMenu: () -> Unit) {
+    IconButton(onClick = onMenu) {
+        Icon(Icons.Filled.Menu, contentDescription = "Menu", tint = Hermes.textPrimary)
     }
 }
 

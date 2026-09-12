@@ -37,6 +37,7 @@ import com.kyssta.hermeybeta.network.SessionSummary
 import com.kyssta.hermeybeta.network.gatewayErrorMessage
 import com.kyssta.hermeybeta.session.SessionRepository
 import com.kyssta.hermeybeta.ui.components.EmptyState
+import com.kyssta.hermeybeta.ui.components.MenuNavButton
 import com.kyssta.hermeybeta.ui.components.ErrorState
 import com.kyssta.hermeybeta.ui.components.HermesButton
 import com.kyssta.hermeybeta.ui.components.HermesSize
@@ -124,7 +125,8 @@ class CommandCenterViewModel(app: Application) : AndroidViewModel(app) {
 /** Command Center — desktop parity: sessions / system / usage maintenance. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CommandCenterScreen(onOpenSession: (String) -> Unit) {
+fun CommandCenterScreen(onOpenSession: (String) -> Unit,
+    onMenu: () -> Unit = {}) {
     val vm: CommandCenterViewModel = viewModel()
     val conn by SessionRepository.connection.collectAsState()
     val p = Hermes
@@ -146,6 +148,7 @@ fun CommandCenterScreen(onOpenSession: (String) -> Unit) {
         topBar = {
             TopAppBar(
                 title = { Text("Command Center", color = p.textPrimary) },
+                navigationIcon = { MenuNavButton(onMenu) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = p.sidebar),
             )
         },

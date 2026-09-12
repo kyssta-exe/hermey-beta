@@ -33,6 +33,7 @@ import com.kyssta.hermeybeta.network.gatewayErrorMessage
 import com.kyssta.hermeybeta.session.SessionRepository
 import com.kyssta.hermeybeta.session.WsRpc
 import com.kyssta.hermeybeta.ui.components.EmptyState
+import com.kyssta.hermeybeta.ui.components.MenuNavButton
 import com.kyssta.hermeybeta.ui.components.ErrorState
 import com.kyssta.hermeybeta.ui.components.HermesButton
 import com.kyssta.hermeybeta.ui.components.HermesSize
@@ -97,7 +98,8 @@ class AgentsViewModel(app: Application) : AndroidViewModel(app) {
 /** Agents — live gateway processes (desktop agents surface, mobile form). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AgentsScreen(onOpenSession: (String) -> Unit) {
+fun AgentsScreen(onOpenSession: (String) -> Unit,
+    onMenu: () -> Unit = {}) {
     val vm: AgentsViewModel = viewModel()
     val conn by SessionRepository.connection.collectAsState()
     val p = Hermes
@@ -108,6 +110,7 @@ fun AgentsScreen(onOpenSession: (String) -> Unit) {
         topBar = {
             TopAppBar(
                 title = { Text("Agents", color = p.textPrimary) },
+                navigationIcon = { MenuNavButton(onMenu) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = p.sidebar),
             )
         },

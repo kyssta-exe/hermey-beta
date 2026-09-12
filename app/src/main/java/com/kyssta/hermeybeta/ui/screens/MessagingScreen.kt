@@ -34,6 +34,7 @@ import com.kyssta.hermeybeta.network.gatewayErrorMessage
 import com.kyssta.hermeybeta.network.parseMsgPlatforms
 import com.kyssta.hermeybeta.session.SessionRepository
 import com.kyssta.hermeybeta.ui.components.EmptyState
+import com.kyssta.hermeybeta.ui.components.MenuNavButton
 import com.kyssta.hermeybeta.ui.components.ErrorState
 import com.kyssta.hermeybeta.ui.components.Loader
 import com.kyssta.hermeybeta.ui.theme.Hermes
@@ -69,7 +70,7 @@ class MessagingViewModel(app: Application) : AndroidViewModel(app) {
 /** Messaging — channel adapters configured on the gateway. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MessagingScreen() {
+fun MessagingScreen(onMenu: () -> Unit = {}) {
     val vm: MessagingViewModel = viewModel()
     val conn by SessionRepository.connection.collectAsState()
     val p = Hermes
@@ -80,6 +81,7 @@ fun MessagingScreen() {
         topBar = {
             TopAppBar(
                 title = { Text("Messaging", color = p.textPrimary) },
+                navigationIcon = { MenuNavButton(onMenu) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = p.sidebar),
             )
         },

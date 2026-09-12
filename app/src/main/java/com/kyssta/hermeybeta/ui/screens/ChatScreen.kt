@@ -64,6 +64,7 @@ import com.kyssta.hermeybeta.session.SessionRepository
 import com.kyssta.hermeybeta.ui.components.CineHero
 import com.kyssta.hermeybeta.ui.components.CineSub
 import com.kyssta.hermeybeta.ui.components.ErrorState
+import com.kyssta.hermeybeta.ui.components.MenuNavButton
 import com.kyssta.hermeybeta.ui.components.HermesButton
 import com.kyssta.hermeybeta.ui.components.HermesDialog
 import com.kyssta.hermeybeta.ui.components.HermesSheet
@@ -120,6 +121,8 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
     var usageLabel by mutableStateOf<String?>(null)
     var notFound by mutableStateOf(false)
     var thinking by mutableStateOf(false)
+    /** Bumped per stream delta so the transcript follows live tokens. */
+    var streamTick by mutableStateOf(0)
 
     private var ws: GatewayWs? = null
     private var loop: Job? = null
@@ -127,6 +130,23 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
     private var pendingSubmitId = -1
     private var generation = -1
     private val pendingReplies = mutableMapOf<Int, CompletableDeferred<JSONObject?>>()
+
+    /** Snapshot-aware row writes: mutating a row's `var` never recomposes —
+     *  the row must be replaced in the list (same for [toolRows] entries). */
+    private fun setAssistant(row: UiMsg.Assistant, text: String = row.text, done: Boolean = row.done) {
+        val i = messages.indexOf(row)
+        if (i >= 0) messages[i] = row.copy(text = text, done = done)
+    }
+
+    private fun setToolRow(row: UiMsg.Tool, summary: String = row.summary, done: Boolean = row.done) {
+        val i = messages.indexOf(row)
+        if (i >= 0) messages[i] = row.copy(summary = summary, done = done)
+    }
+
+    private fun setMappedTool(id: String, summary: String? = null, done: Boolean? = null) {
+        val cur = toolRows[id] ?: return
+        toolRows[id] = cur.copy(summary = summary ?: cur.summary, done = done ?: cur.done)
+    }
 
     /** Request/response over the shared event flow. Null on timeout. */
     private suspend fun awaitReply(id: Int, timeoutMs: Long = 10_000): JSONObject? {
@@ -239,8 +259,7 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
             JSONObject().put("command", command).put("session_id", sessionId),
             timeoutMs = 60_000,
         ) { res ->
-            row.text = res?.optString("text").ifNullOrBlank { res?.toString()?.take(2000) } ?: "(no output)"
-            row.done = true
+            setAssistant(row, text = res?.optString("text").ifNullOrBlank { res?.toString()?.take(2000) } ?: "(no output)", done = true)
             streaming = false
             refreshUsage()
         }
@@ -285,8 +304,7 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
         messages += UiMsg.Tool("attach", "uploading $name…", done = false)
         val row = messages.last() as UiMsg.Tool
         call(method, params, timeoutMs = 60_000) { res ->
-            row.done = true
-            row.summary = if (res != null) "attached $name" else "upload failed"
+            setToolRow(row, summary = if (res != null) "attached $name" else "upload failed", done = true)
             if (res == null) error = "Attachment upload timed out"
         }
     }
@@ -312,8 +330,7 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
         messages += UiMsg.Tool("compress", "compressing context…", done = false)
         val row = messages.last() as UiMsg.Tool
         call("session.compress", JSONObject().put("session_id", sessionId), timeoutMs = 120_000) { res ->
-            row.done = true
-            row.summary = if (res != null) "context compressed" else "compress failed"
+            setToolRow(row, summary = if (res != null) "context compressed" else "compress failed", done = true)
             refreshUsage()
         }
     }
@@ -361,11 +378,12 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
         )
     }
 
+    /** Model switch from the chat header (desktop model pill, same contract as Settings). */
     fun setModel(modelName: String) {
         val conn = SessionRepository.connection.value ?: return
         viewModelScope.launch {
             try {
-                SessionRepository.apiFor(conn).setModel(modelName)
+                SessionRepository.apiFor(conn).setModelAssignment(modelName, model?.provider ?: "auto", "main", "")
                 model = SessionRepository.apiFor(conn).modelInfo()
             } catch (e: Exception) {
                 error = gatewayErrorMessage(e)
@@ -474,9 +492,10 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
                 if (chunk.isNotBlank()) {
                     thinking = false
                     val row = messages.lastOrNull { it is UiMsg.Assistant && !it.done } as? UiMsg.Assistant
-                    if (row != null) row.text += chunk
+                    if (row != null) setAssistant(row, text = row.text + chunk)
                     else messages += UiMsg.Assistant(chunk, done = false)
                     streaming = true
+                    streamTick++
                 }
             }
             "message.start" -> streaming = true
@@ -491,7 +510,7 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
             "message.complete" -> {
                 val text = p.optString("text")
                 val row = messages.lastOrNull { it is UiMsg.Assistant && !it.done } as? UiMsg.Assistant
-                if (row != null && row.text.isBlank() && text.isNotBlank()) row.text = text
+                if (row != null && row.text.isBlank() && text.isNotBlank()) setAssistant(row, text = text)
                 finalizeStream()
             }
             "tool.start" -> {
@@ -505,15 +524,13 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
             "tool.progress" -> {
                 val id = p.optString("id").ifBlank { p.optString("tool_id") }
                 val update = p.optString("summary").ifBlank { p.optString("text") }
-                if (update.isNotBlank()) toolRows[id]?.summary = update
+                if (update.isNotBlank()) setMappedTool(id, summary = update)
             }
             "tool.complete" -> {
                 val id = p.optString("id").ifBlank { p.optString("tool_id") }
                 val result = p.optString("summary").ifBlank { p.optString("result") }
-                toolRows[id]?.let {
-                    it.done = true
-                    if (result.isNotBlank()) it.summary = result.take(300)
-                }
+                if (result.isNotBlank()) setMappedTool(id, summary = result.take(300), done = true)
+                else setMappedTool(id, done = true)
             }
             "clarify.request" -> {
                 val opts = p.optJSONArray("options")?.let { a -> List(a.length()) { i -> a.optString(i) } }.orEmpty()
@@ -541,7 +558,7 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
     private fun finalizeStream() {
         streaming = false
         thinking = false
-        (messages.lastOrNull { it is UiMsg.Assistant && !it.done } as? UiMsg.Assistant)?.done = true
+        (messages.lastOrNull { it is UiMsg.Assistant && !it.done } as? UiMsg.Assistant)?.let { setAssistant(it, done = true) }
         refreshUsage()
     }
 
@@ -550,8 +567,7 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
         thinking = false
         val row = messages.lastOrNull { it is UiMsg.Assistant && !it.done } as? UiMsg.Assistant
         if (row != null) {
-            if (row.text.isBlank()) row.text = "Error: $detail"
-            row.done = true
+            setAssistant(row, text = if (row.text.isBlank()) "Error: $detail" else row.text, done = true)
         } else {
             error = detail
         }
@@ -579,6 +595,7 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
 @Composable
 fun ChatScreen(
     sessionId: String,
+    onMenu: () -> Unit = {},
     onNavigateBack: (() -> Unit)? = null,
     onSessionClosed: (() -> Unit)? = null,
     onBranched: ((String) -> Unit)? = null,
@@ -619,8 +636,12 @@ fun ChatScreen(
 
     LaunchedEffect(sessionId) { vm.start(sessionId) }
     DisposableEffect(Unit) { onDispose { /* socket persists per desktop panes */ } }
-    LaunchedEffect(vm.messages.size) {
-        if (vm.messages.isNotEmpty()) listState.animateScrollToItem(vm.messages.size - 1)
+    LaunchedEffect(vm.messages.size, vm.streamTick) {
+        if (vm.messages.isNotEmpty()) {
+            // Per-token animate() janks; glide while streaming, ease on settle.
+            if (vm.streaming) listState.scrollToItem(vm.messages.size - 1)
+            else listState.animateScrollToItem(vm.messages.size - 1)
+        }
     }
 
     Scaffold(
@@ -657,6 +678,8 @@ fun ChatScreen(
                 navigationIcon = {
                     if (onNavigateBack != null) {
                         HermesButton("Back", onClick = onNavigateBack, variant = HermesVariant.Text, size = HermesSize.Sm)
+                    } else {
+                        MenuNavButton(onMenu)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = p.sidebar),

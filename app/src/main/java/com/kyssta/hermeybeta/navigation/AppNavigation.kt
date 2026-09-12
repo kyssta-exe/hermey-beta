@@ -106,24 +106,29 @@ fun AppNavigation() {
     val drawer = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val p = Hermes
+    val openDrawer: () -> Unit = { scope.launch { drawer.open() }; Unit }
     val backStack by nav.currentBackStackEntryAsState()
     val route = backStack?.destination?.route ?: Routes.CHAT
 
     ModalNavigationDrawer(
         drawerState = drawer,
         drawerContent = {
-            ModalDrawerSheet {
-                Text("More", color = p.textTertiary, modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp))
-                MoreScreen.entries.forEach { m ->
-                    NavigationDrawerItem(
-                        label = { Text(m.label) },
-                        selected = route == m.route,
-                        onClick = {
-                            scope.launch { drawer.close() }
-                            nav.navigate(m.route) { launchSingleTop = true }
-                        },
-                    )
-                }
+            ModalDrawerSheet(drawerContainerColor = p.sidebar) {
+                DrawerHeader(
+                    host = conn?.baseUrl,
+                    route = route,
+                    onHome = {
+                        scope.launch { drawer.close() }
+                        nav.navigate(Routes.chat()) { launchSingleTop = true }
+                    },
+                )
+                DrawerGroups(
+                    route = route,
+                    onPick = { target ->
+                        scope.launch { drawer.close() }
+                        nav.navigate(target) { launchSingleTop = true }
+                    },
+                )
             }
         },
     ) {
@@ -174,49 +179,52 @@ fun AppNavigation() {
                     val sid = entry.arguments?.getString("sessionId") ?: ""
                     ChatScreen(
                         sessionId = sid,
+                        onMenu = openDrawer,
                         onBranched = { nid -> nav.navigate(Routes.chat(nid)) },
                         onSessionClosed = { nav.navigate(Routes.SESSIONS) { popUpTo(nav.graph.startDestinationId) } },
                         onNewChat = { nav.navigate(Routes.chat()) },
                         onOpenSessions = { nav.navigate(Routes.SESSIONS) { popUpTo(nav.graph.startDestinationId) } },
                     )
                 }
-                composable(Routes.TASKS) { TasksScreen() }
+                composable(Routes.TASKS) { TasksScreen(onMenu = openDrawer) }
                 composable(Routes.SESSIONS) {
                     SessionsScreen(
+                        onMenu = openDrawer,
                         onOpenChat = { id -> nav.navigate(Routes.chat(id)) },
                         onNewChat = { nav.navigate(Routes.chat()) },
                     )
                 }
-                composable(Routes.CRON) { CronScreen() }
-                composable(Routes.SKILLS) { SkillsScreen() }
+                composable(Routes.CRON) { CronScreen(onMenu = openDrawer) }
+                composable(Routes.SKILLS) { SkillsScreen(onMenu = openDrawer) }
                 composable(Routes.ARTIFACTS) {
-                    ArtifactsScreen(onOpenSession = { id -> nav.navigate(Routes.chat(id)) })
+                    ArtifactsScreen(onMenu = openDrawer, onOpenSession = { id -> nav.navigate(Routes.chat(id)) })
                 }
-                composable(Routes.MESSAGING) { MessagingScreen() }
-                composable(Routes.WORKSPACE) { WorkspaceScreen() }
+                composable(Routes.MESSAGING) { MessagingScreen(onMenu = openDrawer) }
+                composable(Routes.WORKSPACE) { WorkspaceScreen(onMenu = openDrawer) }
                 composable(Routes.PROFILES) {
-                    GatewaysScreen(onAddGateway = { nav.navigate(Routes.CONNECT) })
+                    GatewaysScreen(onMenu = openDrawer, onAddGateway = { nav.navigate(Routes.CONNECT) })
                 }
                 composable(Routes.AGENTS) {
-                    AgentsScreen(onOpenSession = { id -> nav.navigate(Routes.chat(id)) })
+                    AgentsScreen(onMenu = openDrawer, onOpenSession = { id -> nav.navigate(Routes.chat(id)) })
                 }
                 composable(Routes.STARMAP) {
-                    StarmapScreen(onOpenSession = { id -> nav.navigate(Routes.chat(id)) })
+                    StarmapScreen(onMenu = openDrawer, onOpenSession = { id -> nav.navigate(Routes.chat(id)) })
                 }
-                composable(Routes.INSIGHTS) { InsightsScreen() }
-                composable(Routes.MEMORY) { MemoryScreen() }
-                composable(Routes.PAIRING) { PairingScreen() }
-                composable(Routes.MCP) { McpScreen() }
-                composable(Routes.TOOLS) { ToolsScreen() }
-                composable(Routes.WEBHOOKS) { WebhooksScreen() }
+                composable(Routes.INSIGHTS) { InsightsScreen(onMenu = openDrawer) }
+                composable(Routes.MEMORY) { MemoryScreen(onMenu = openDrawer) }
+                composable(Routes.PAIRING) { PairingScreen(onMenu = openDrawer) }
+                composable(Routes.MCP) { McpScreen(onMenu = openDrawer) }
+                composable(Routes.TOOLS) { ToolsScreen(onMenu = openDrawer) }
+                composable(Routes.WEBHOOKS) { WebhooksScreen(onMenu = openDrawer) }
                 composable(Routes.COMMAND_CENTER) {
-                    CommandCenterScreen(onOpenSession = { id -> nav.navigate(Routes.chat(id)) })
+                    CommandCenterScreen(onMenu = openDrawer, onOpenSession = { id -> nav.navigate(Routes.chat(id)) })
                 }
                 composable(Routes.SESSION_IMPORT) {
-                    SessionImportScreen(onOpenSession = { id -> nav.navigate(Routes.chat(id)) })
+                    SessionImportScreen(onMenu = openDrawer, onOpenSession = { id -> nav.navigate(Routes.chat(id)) })
                 }
                 composable(Routes.SETTINGS) {
                     SettingsScreen(
+                        onMenu = openDrawer,
                         onSignOut = {},
                         onManageGateways = { nav.navigate(Routes.PROFILES) },
                     )

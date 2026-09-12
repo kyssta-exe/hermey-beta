@@ -35,6 +35,7 @@ import com.kyssta.hermeybeta.network.gatewayErrorMessage
 import com.kyssta.hermeybeta.network.parsePairing
 import com.kyssta.hermeybeta.session.SessionRepository
 import com.kyssta.hermeybeta.ui.components.EmptyState
+import com.kyssta.hermeybeta.ui.components.MenuNavButton
 import com.kyssta.hermeybeta.ui.components.ErrorState
 import com.kyssta.hermeybeta.ui.components.HermesButton
 import com.kyssta.hermeybeta.ui.components.HermesSize
@@ -120,7 +121,7 @@ class PairingViewModel(app: Application) : AndroidViewModel(app) {
 /** Pairing — approve pending device/channel pairing requests. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PairingScreen() {
+fun PairingScreen(onMenu: () -> Unit = {}) {
     val vm: PairingViewModel = viewModel()
     val conn by SessionRepository.connection.collectAsState()
     val p = Hermes
@@ -131,6 +132,7 @@ fun PairingScreen() {
         topBar = {
             TopAppBar(
                 title = { Text("Pairing", color = p.textPrimary) },
+                navigationIcon = { MenuNavButton(onMenu) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = p.sidebar),
                 actions = {
                     if (vm.pending.isNotEmpty()) {

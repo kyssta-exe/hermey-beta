@@ -29,6 +29,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.kyssta.hermeybeta.network.gatewayErrorMessage
 import com.kyssta.hermeybeta.session.SessionRepository
 import com.kyssta.hermeybeta.ui.components.ErrorState
+import com.kyssta.hermeybeta.ui.components.MenuNavButton
 import com.kyssta.hermeybeta.ui.components.HermesButton
 import com.kyssta.hermeybeta.ui.components.HermesVariant
 import com.kyssta.hermeybeta.ui.components.ListRow
@@ -92,7 +93,7 @@ class MemoryViewModel(app: Application) : AndroidViewModel(app) {
 /** Memory — provider status + reset (desktop memory surface, mobile form). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MemoryScreen() {
+fun MemoryScreen(onMenu: () -> Unit = {}) {
     val vm: MemoryViewModel = viewModel()
     val conn by SessionRepository.connection.collectAsState()
     val p = Hermes
@@ -103,6 +104,7 @@ fun MemoryScreen() {
         topBar = {
             TopAppBar(
                 title = { Text("Memory", color = p.textPrimary) },
+                navigationIcon = { MenuNavButton(onMenu) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = p.sidebar),
             )
         },

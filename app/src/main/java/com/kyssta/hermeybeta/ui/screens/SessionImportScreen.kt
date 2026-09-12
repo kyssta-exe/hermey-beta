@@ -36,6 +36,7 @@ import com.kyssta.hermeybeta.network.parseForeignSessions
 import com.kyssta.hermeybeta.session.SessionRepository
 import com.kyssta.hermeybeta.session.WsRpc
 import com.kyssta.hermeybeta.ui.components.EmptyState
+import com.kyssta.hermeybeta.ui.components.MenuNavButton
 import com.kyssta.hermeybeta.ui.components.ErrorState
 import com.kyssta.hermeybeta.ui.components.HermesButton
 import com.kyssta.hermeybeta.ui.components.HermesSize
@@ -112,7 +113,8 @@ class SessionImportViewModel(app: Application) : AndroidViewModel(app) {
 /** Session Import — desktop parity: Claude/Codex foreign sessions → import. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SessionImportScreen(onOpenSession: (String) -> Unit) {
+fun SessionImportScreen(onOpenSession: (String) -> Unit,
+    onMenu: () -> Unit = {}) {
     val vm: SessionImportViewModel = viewModel()
     val conn by SessionRepository.connection.collectAsState()
     val p = Hermes
@@ -130,6 +132,7 @@ fun SessionImportScreen(onOpenSession: (String) -> Unit) {
         topBar = {
             TopAppBar(
                 title = { Text("Import sessions", color = p.textPrimary) },
+                navigationIcon = { MenuNavButton(onMenu) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = p.sidebar),
             )
         },

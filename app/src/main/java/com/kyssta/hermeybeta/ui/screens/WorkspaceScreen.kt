@@ -44,6 +44,7 @@ import com.kyssta.hermeybeta.ui.components.EmptyState
 import com.kyssta.hermeybeta.ui.components.ErrorState
 import com.kyssta.hermeybeta.ui.components.HermesButton
 import com.kyssta.hermeybeta.ui.components.HermesDialog
+import com.kyssta.hermeybeta.ui.components.MenuNavButton
 import com.kyssta.hermeybeta.ui.components.HermesSize
 import com.kyssta.hermeybeta.ui.components.HermesVariant
 import com.kyssta.hermeybeta.ui.components.Loader
@@ -143,7 +144,7 @@ fun decodeTextPreview(dataUrl: String, mime: String, size: Long): String {
 /** Workspace — server file browser (desktop files pane, mobile form). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WorkspaceScreen() {
+fun WorkspaceScreen(onMenu: () -> Unit = {}) {
     val vm: WorkspaceViewModel = viewModel()
     val conn by SessionRepository.connection.collectAsState()
     val p = Hermes
@@ -156,11 +157,12 @@ fun WorkspaceScreen() {
                 title = { Text(vm.listing?.path?.takeLast(32) ?: "Workspace", color = p.textPrimary) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = p.sidebar),
                 navigationIcon = {
+                    MenuNavButton(onMenu)
+                },
+                actions = {
                     if (vm.listing?.parent != null || vm.path != null) {
                         HermesButton("Up", onClick = { vm.goUp() }, variant = HermesVariant.Text, size = HermesSize.Sm)
                     }
-                },
-                actions = {
                     HermesButton("New folder", onClick = { vm.showMkdir = true }, variant = HermesVariant.Text, size = HermesSize.Sm)
                 },
             )

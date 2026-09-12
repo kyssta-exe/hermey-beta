@@ -36,6 +36,7 @@ import com.kyssta.hermeybeta.network.ServerProfile
 import com.kyssta.hermeybeta.network.parseProfiles
 import com.kyssta.hermeybeta.session.SessionRepository
 import com.kyssta.hermeybeta.ui.components.EmptyState
+import com.kyssta.hermeybeta.ui.components.MenuNavButton
 import com.kyssta.hermeybeta.ui.components.HermesButton
 import com.kyssta.hermeybeta.ui.components.HermesSize
 import com.kyssta.hermeybeta.ui.components.HermesVariant
@@ -51,7 +52,8 @@ import kotlinx.coroutines.launch
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GatewaysScreen(onAddGateway: () -> Unit) {
+fun GatewaysScreen(onAddGateway: () -> Unit,
+    onMenu: () -> Unit = {}) {
     val ctx = LocalContext.current.applicationContext
     // Re-create the store handle against the current context (same encrypted prefs).
     val store = ConnectionStore(ctx)
@@ -98,6 +100,7 @@ fun GatewaysScreen(onAddGateway: () -> Unit) {
         topBar = {
             TopAppBar(
                 title = { Text("Profiles", color = p.textPrimary) },
+                navigationIcon = { MenuNavButton(onMenu) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = p.sidebar),
                 actions = {
                     HermesButton("Add", onClick = onAddGateway, variant = HermesVariant.Ghost, size = HermesSize.Sm)

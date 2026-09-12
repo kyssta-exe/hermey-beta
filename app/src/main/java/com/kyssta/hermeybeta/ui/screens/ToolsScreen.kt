@@ -31,6 +31,7 @@ import com.kyssta.hermeybeta.network.gatewayErrorMessage
 import com.kyssta.hermeybeta.session.SessionRepository
 import com.kyssta.hermeybeta.session.WsRpc
 import com.kyssta.hermeybeta.ui.components.EmptyState
+import com.kyssta.hermeybeta.ui.components.MenuNavButton
 import com.kyssta.hermeybeta.ui.components.ErrorState
 import com.kyssta.hermeybeta.ui.components.Loader
 import com.kyssta.hermeybeta.ui.theme.Hermes
@@ -89,7 +90,7 @@ class ToolsViewModel(app: Application) : AndroidViewModel(app) {
 /** Tools — tool + toolset catalogs (desktop toolset config, mobile form). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ToolsScreen() {
+fun ToolsScreen(onMenu: () -> Unit = {}) {
     val vm: ToolsViewModel = viewModel()
     val conn by SessionRepository.connection.collectAsState()
     val p = Hermes
@@ -100,6 +101,7 @@ fun ToolsScreen() {
         topBar = {
             TopAppBar(
                 title = { Text("Tools", color = p.textPrimary) },
+                navigationIcon = { MenuNavButton(onMenu) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = p.sidebar),
             )
         },

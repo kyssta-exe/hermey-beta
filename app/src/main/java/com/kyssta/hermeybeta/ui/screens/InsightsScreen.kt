@@ -37,6 +37,7 @@ import com.kyssta.hermeybeta.network.parseModelsAnalytics
 import com.kyssta.hermeybeta.session.SessionRepository
 import com.kyssta.hermeybeta.session.WsRpc
 import com.kyssta.hermeybeta.ui.components.EmptyState
+import com.kyssta.hermeybeta.ui.components.MenuNavButton
 import com.kyssta.hermeybeta.ui.components.ErrorState
 import com.kyssta.hermeybeta.ui.components.Loader
 import com.kyssta.hermeybeta.ui.components.SegmentedControl
@@ -84,7 +85,7 @@ class InsightsViewModel(app: Application) : AndroidViewModel(app) {
 /** Insights — usage analytics (desktop analytics + web dashboard data). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun InsightsScreen() {
+fun InsightsScreen(onMenu: () -> Unit = {}) {
     val vm: InsightsViewModel = viewModel()
     val conn by SessionRepository.connection.collectAsState()
     val p = Hermes
@@ -95,6 +96,7 @@ fun InsightsScreen() {
         topBar = {
             TopAppBar(
                 title = { Text("Insights", color = p.textPrimary) },
+                navigationIcon = { MenuNavButton(onMenu) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = p.sidebar),
             )
         },

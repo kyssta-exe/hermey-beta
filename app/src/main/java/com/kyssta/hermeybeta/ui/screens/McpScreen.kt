@@ -40,6 +40,7 @@ import com.kyssta.hermeybeta.network.parseMcpServers
 import com.kyssta.hermeybeta.session.SessionRepository
 import com.kyssta.hermeybeta.session.WsRpc
 import com.kyssta.hermeybeta.ui.components.EmptyState
+import com.kyssta.hermeybeta.ui.components.MenuNavButton
 import com.kyssta.hermeybeta.ui.components.ErrorState
 import com.kyssta.hermeybeta.ui.components.HermesButton
 import com.kyssta.hermeybeta.ui.components.HermesDialog
@@ -181,7 +182,7 @@ class McpViewModel(app: Application) : AndroidViewModel(app) {
 /** MCP — servers (toggle/test/delete) + catalog install with env prompts. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun McpScreen() {
+fun McpScreen(onMenu: () -> Unit = {}) {
     val vm: McpViewModel = viewModel()
     val conn by SessionRepository.connection.collectAsState()
     val p = Hermes
@@ -193,6 +194,7 @@ fun McpScreen() {
         topBar = {
             TopAppBar(
                 title = { Text("MCP", color = p.textPrimary) },
+                navigationIcon = { MenuNavButton(onMenu) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = p.sidebar),
             )
         },

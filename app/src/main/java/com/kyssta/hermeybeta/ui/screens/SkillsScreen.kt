@@ -37,6 +37,7 @@ import com.kyssta.hermeybeta.network.gatewayErrorMessage
 import com.kyssta.hermeybeta.session.SessionRepository
 import com.kyssta.hermeybeta.session.WsRpc
 import com.kyssta.hermeybeta.ui.components.EmptyState
+import com.kyssta.hermeybeta.ui.components.MenuNavButton
 import com.kyssta.hermeybeta.ui.components.ErrorState
 import com.kyssta.hermeybeta.ui.components.HermesButton
 import com.kyssta.hermeybeta.ui.components.HermesSize
@@ -155,7 +156,7 @@ class SkillsViewModel(app: Application) : AndroidViewModel(app) {
 /** Skills hub — mirrors the desktop skills page (list + toggles). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SkillsScreen() {
+fun SkillsScreen(onMenu: () -> Unit = {}) {
     val vm: SkillsViewModel = viewModel()
     val conn by SessionRepository.connection.collectAsState()
     val p = Hermes
@@ -166,6 +167,7 @@ fun SkillsScreen() {
         topBar = {
             TopAppBar(
                 title = { Text("Skills", color = p.textPrimary) },
+                navigationIcon = { MenuNavButton(onMenu) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = p.sidebar),
             )
         },

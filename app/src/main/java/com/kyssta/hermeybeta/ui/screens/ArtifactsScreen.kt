@@ -38,6 +38,7 @@ import com.kyssta.hermeybeta.network.artifactLabelFor
 import com.kyssta.hermeybeta.network.gatewayErrorMessage
 import com.kyssta.hermeybeta.session.SessionRepository
 import com.kyssta.hermeybeta.ui.components.EmptyState
+import com.kyssta.hermeybeta.ui.components.MenuNavButton
 import com.kyssta.hermeybeta.ui.components.ErrorState
 import com.kyssta.hermeybeta.ui.components.HermesSize
 import com.kyssta.hermeybeta.ui.components.HermesVariant
@@ -119,7 +120,8 @@ class ArtifactsViewModel(app: Application) : AndroidViewModel(app) {
 /** Artifacts — desktop parity: aggregated files/images/links across sessions. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ArtifactsScreen(onOpenSession: (String) -> Unit) {
+fun ArtifactsScreen(onOpenSession: (String) -> Unit,
+    onMenu: () -> Unit = {}) {
     val vm: ArtifactsViewModel = viewModel()
     val conn by SessionRepository.connection.collectAsState()
     val p = Hermes
@@ -137,6 +139,7 @@ fun ArtifactsScreen(onOpenSession: (String) -> Unit) {
         topBar = {
             TopAppBar(
                 title = { Text("Artifacts", color = p.textPrimary) },
+                navigationIcon = { MenuNavButton(onMenu) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = p.sidebar),
             )
         },

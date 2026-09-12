@@ -39,6 +39,7 @@ import com.kyssta.hermeybeta.network.SessionSummary
 import com.kyssta.hermeybeta.network.gatewayErrorMessage
 import com.kyssta.hermeybeta.session.SessionRepository
 import com.kyssta.hermeybeta.ui.components.EmptyState
+import com.kyssta.hermeybeta.ui.components.MenuNavButton
 import com.kyssta.hermeybeta.ui.components.ErrorState
 import com.kyssta.hermeybeta.ui.components.HermesButton
 import com.kyssta.hermeybeta.ui.components.HermesSize
@@ -139,7 +140,8 @@ class SessionsViewModel(app: Application) : AndroidViewModel(app) {
 /** Session list — the mobile form of the desktop chat sidebar. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SessionsScreen(onOpenChat: (String) -> Unit, onNewChat: () -> Unit) {
+fun SessionsScreen(onOpenChat: (String) -> Unit, onNewChat: () -> Unit,
+    onMenu: () -> Unit = {}) {
     val vm: SessionsViewModel = viewModel()
     val conn by SessionRepository.connection.collectAsState()
     val p = Hermes
@@ -150,6 +152,7 @@ fun SessionsScreen(onOpenChat: (String) -> Unit, onNewChat: () -> Unit) {
         topBar = {
             TopAppBar(
                 title = { Text("Sessions", color = p.textPrimary) },
+                navigationIcon = { MenuNavButton(onMenu) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = p.sidebar),
                 actions = {
                     HermesButton("New", onClick = onNewChat, variant = HermesVariant.Ghost, size = HermesSize.Sm)

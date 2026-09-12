@@ -183,7 +183,7 @@ private fun auxIcon(task: String): ImageVector {
 /** Settings/Models (DESIGN 03) — model picker, auxiliary overrides, placeholders. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(onSignOut: () -> Unit, onManageGateways: () -> Unit) {
+fun SettingsScreen(onMenu: () -> Unit = {}, onSignOut: () -> Unit, onManageGateways: () -> Unit) {
     val vm: SettingsViewModel = viewModel()
     val ctx = LocalContext.current.applicationContext
     val conn by SessionRepository.connection.collectAsState()
@@ -194,7 +194,7 @@ fun SettingsScreen(onSignOut: () -> Unit, onManageGateways: () -> Unit) {
     LaunchedEffect(conn) { vm.load() }
 
     Scaffold(
-        topBar = { CineTopBar(title = "Settings", onMenu = onManageGateways) },
+        topBar = { CineTopBar(title = "Settings", onMenu = onMenu) },
     ) { padding ->
         Column(
             Modifier

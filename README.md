@@ -13,7 +13,8 @@ Remote gateway and cloud gateway only (mirrors the desktop connection switch min
 
 ## Features (desktop route parity)
 
-- Chat — streaming transcript, tool calls, clarify + approval prompts, model picker, stop, slash commands with server autocomplete, image/file attachments, voice input, context usage meter, rename/compress/branch/close
+- Chat — live token streaming, tool calls, clarify + approval prompts, model switch from the header, stop, slash commands (`/goal` etc.) with server autocomplete, image/file attachments, voice input, context usage meter, rename/compress/branch/close
+- Drawer on every screen — Hermes-styled sidebar (brand header + live gateway host, grouped destinations), same hamburger everywhere
 - Tasks (Kanban) — board lanes, search, My Tasks, create, full status moves (todo/running/blocked/review/done), edit, delete, comments, history
 - Sessions — list, search, pin, archive, delete
 - Skills — browse and toggle, hub search/install/reload

@@ -37,6 +37,7 @@ import com.kyssta.hermeybeta.network.gatewayErrorMessage
 import com.kyssta.hermeybeta.session.SessionRepository
 import com.kyssta.hermeybeta.session.WsRpc
 import com.kyssta.hermeybeta.ui.components.EmptyState
+import com.kyssta.hermeybeta.ui.components.MenuNavButton
 import com.kyssta.hermeybeta.ui.components.ErrorState
 import com.kyssta.hermeybeta.ui.components.HermesButton
 import com.kyssta.hermeybeta.ui.components.HermesDialog
@@ -127,7 +128,7 @@ class CronViewModel(app: Application) : AndroidViewModel(app) {
 /** Cron — mirrors the desktop cron overlay (jobs, pause/resume). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CronScreen() {
+fun CronScreen(onMenu: () -> Unit = {}) {
     val vm: CronViewModel = viewModel()
     val conn by SessionRepository.connection.collectAsState()
     val p = Hermes
@@ -139,6 +140,7 @@ fun CronScreen() {
         topBar = {
             TopAppBar(
                 title = { Text("Cron", color = p.textPrimary) },
+                navigationIcon = { MenuNavButton(onMenu) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = p.sidebar),
                 actions = {
                     HermesButton("Add", onClick = { showAdd = true }, variant = HermesVariant.Ghost, size = HermesSize.Sm)
