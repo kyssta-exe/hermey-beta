@@ -339,11 +339,13 @@ class GatewayApi(baseUrl: String, private val onUnauthorized: () -> Unit = {}) {
     // ── Auxiliary models ────────────────────────────────────────────────
     suspend fun auxiliaryModels(): JSONObject = JSONObject(get("/api/model/auxiliary"))
 
+    /** `task` is optional in the desktop contract — main-scope callers must not send it. */
     suspend fun setModelAssignment(model: String, provider: String, scope: String, task: String): JSONObject =
         JSONObject(
             post(
                 "/api/model/set",
-                JSONObject().put("model", model).put("provider", provider).put("scope", scope).put("task", task),
+                JSONObject().put("model", model).put("provider", provider).put("scope", scope)
+                    .apply { if (task.isNotBlank()) put("task", task) },
             ),
         )
 

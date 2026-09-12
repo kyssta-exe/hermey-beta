@@ -96,22 +96,36 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
     var loading by mutableStateOf(true)
     var saving by mutableStateOf(false)
     var error by mutableStateOf<String?>(null)
+    var auxError by mutableStateOf<String?>(null)
 
     fun load() {
         val conn = SessionRepository.connection.value ?: return
         loading = true
         error = null
+        auxError = null
         viewModelScope.launch {
             try {
                 val api = SessionRepository.apiFor(conn)
-                val mi = api.modelInfo()
-                info = mi
-                pendingModel = mi.model
-                options = api.modelOptions()
-                slots = parseAuxSlots(api.auxiliaryModels())
+                // Independent rungs: one failing endpoint must not blank the rest.
+                try {
+                    val mi = api.modelInfo()
+                    info = mi
+                    pendingModel = mi.model
+                } catch (e: Exception) {
+                    error = gatewayErrorMessage(e)
+                }
+                try {
+                    options = api.modelOptions()
+                } catch (e: Exception) {
+                    if (error == null) error = gatewayErrorMessage(e)
+                }
+                try {
+                    slots = parseAuxSlots(api.auxiliaryModels())
+                } catch (e: Exception) {
+                    slots = emptyList()
+                    auxError = gatewayErrorMessage(e)
+                }
                 profileName = runCatching { api.activeProfile().optString("active").takeUnless { it.isBlank() } }.getOrNull()
-            } catch (e: Exception) {
-                error = gatewayErrorMessage(e)
             } finally {
                 loading = false
             }
@@ -275,7 +289,7 @@ private fun ModelTab(vm: SettingsViewModel, onPickMain: () -> Unit, onPickAux: (
         CineSub("Helper tasks run on the default model. Assign a dedicated model to any task to override.")
         Spacer(Modifier.height(8.dp))
         if (vm.slots.isEmpty()) {
-            CineSub("No auxiliary tasks reported by this gateway.")
+            CineSub(vm.auxError ?: "No auxiliary tasks reported by this gateway.")
         } else {
             vm.slots.forEach { slot ->
                 CineCard(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp), onClick = { onPickAux(slot) }) {

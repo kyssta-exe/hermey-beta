@@ -46,6 +46,13 @@ class GatewayUrlsTest {
     }
 
     @Test
+    fun encMatchesEncodeURIComponent() {
+        // Path segments: spaces become %20, never + (gateway 500s on +).
+        assertEquals("my%20session%201", enc("my session 1"))
+        assertEquals("a%2Fb", enc("a/b"))
+    }
+
+    @Test
     fun buildUrlJoins() {
         assertEquals(
             "https://h.example.com/api/sessions",

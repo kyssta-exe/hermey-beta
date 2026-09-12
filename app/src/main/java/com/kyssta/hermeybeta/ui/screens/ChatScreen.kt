@@ -179,9 +179,9 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
                     modelOptions = api.modelOptions()
                 } catch (_: Exception) {
                 }
-                if (sessionId.isNotBlank()) {
-                    api.messages(sessionId).forEach { m -> addHistory(m) }
-                }
+                // History arrives via session.resume in openSession below (resume-first
+                // rung + REST fallback). No REST prefetch here: a history 500 must
+                // never kill the socket attach.
                 val ticket = api.wsTicket()
                 val socket = GatewayWs.withTicket(conn.baseUrl, ticket)
                 ws = socket
@@ -401,14 +401,15 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
                 }
             }
         }
-        // Fallback rung: REST transcript.
+        // Fallback rung: REST transcript. A failure here must not blank a live
+        // chat: resume above may already have filled the transcript.
         try {
             val conn = SessionRepository.connection.value ?: return
             SessionRepository.apiFor(conn).messages(id).forEach { m -> addHistory(m) }
         } catch (e: Exception) {
             if (e is com.kyssta.hermeybeta.network.GatewayHttpException && e.code == 404) {
                 notFound = true
-            } else {
+            } else if (messages.isEmpty()) {
                 error = gatewayErrorMessage(e)
             }
         }

@@ -53,5 +53,5 @@ fun buildUrl(baseUrl: String, path: String, query: Map<String, String?> = emptyM
     return if (params.isNotBlank()) "$base$cleanPath?$params" else "$base$cleanPath"
 }
 
-/** Encode one URL path segment (mirrors encodeURIComponent at call sites). */
-fun enc(segment: String): String = URLEncoder.encode(segment, "UTF-8")
+/** Encode one URL path segment (encodeURIComponent parity: spaces become %20, not +). */
+fun enc(segment: String): String = URLEncoder.encode(segment, "UTF-8").replace("+", "%20")
