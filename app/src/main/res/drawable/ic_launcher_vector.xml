@@ -3,13 +3,16 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+    <!-- Dark outer circle — adapts to light/dark backgrounds via adaptive-icon -->
     <path
-        android:fillColor="#17171a"
+        android:fillColor="#0f1420"
         android:pathData="M54,0C24.3,0 0,24.3 0,54s24.3,54 54,54 54,-24.3 54,-54S83.7,0 54,0z" />
+    <!-- Blue ring -->
     <path
         android:fillColor="#0053fd"
         android:pathData="M54,18C32.9,18 18,32.9 18,54s14.9,36 36,36 36,-14.9 36,-36S75.1,18 54,18z" />
+    <!-- White Hermes H silhouette -->
     <path
         android:fillColor="#ffffff"
-        android:pathData="M54,27c-15,0-27,12-27,27s12,27 27,27 27,-12 27,-27S69,27 54,27z" />
+        android:pathData="M54,30c-9.9,0-18,8.1-18,18v12c0,9.9 8.1,18 18,18s18,-8.1 18,-18v-12c0,-9.9-8.1-18-18-18zm-6,18h12v12h-12z" />
 </vector>
