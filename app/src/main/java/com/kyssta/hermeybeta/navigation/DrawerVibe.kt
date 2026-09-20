@@ -5,11 +5,14 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.NavigationDrawerItem
@@ -134,29 +137,40 @@ fun DrawerGroups(route: String, onPick: (String) -> Unit) {
         selectedTextColor = p.accent,
         unselectedTextColor = p.textSecondary,
     )
-    DRAWER_GROUPS.forEach { group ->
-        Text(
-            group.title.uppercase(),
-            color = p.textTertiary,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.SemiBold,
-            letterSpacing = 1.sp,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-        )
-        group.items.forEach { m ->
-            NavigationDrawerItem(
-                label = {
-                    Column {
-                        Text(m.label, fontSize = 14.sp)
-                        Text(m.description, fontSize = 12.sp, color = p.textTertiary, maxLines = 1)
-                    }
-                },
-                selected = route == m.route,
-                colors = colors,
-                onClick = { onPick(m.route) },
-                modifier = Modifier.padding(horizontal = 8.dp),
-            )
+    LazyColumn(
+        Modifier
+            .fillMaxSize()
+            .padding(vertical = 8.dp),
+    ) {
+        DRAWER_GROUPS.forEach { group ->
+            stickyHeader {
+                Text(
+                    group.title.uppercase(),
+                    color = p.textTertiary,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 1.sp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(p.sidebar)
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                )
+            }
+            items(group.items) { m ->
+                NavigationDrawerItem(
+                    label = {
+                        Column {
+                            Text(m.label, fontSize = 14.sp)
+                            Text(m.description, fontSize = 12.sp, color = p.textTertiary, maxLines = 1)
+                        }
+                    },
+                    selected = route == m.route,
+                    colors = colors,
+                    onClick = { onPick(m.route) },
+                    modifier = Modifier.padding(horizontal = 8.dp),
+                )
+            }
         }
+        item { Spacer(Modifier.height(16.dp)) }
     }
-    Spacer(Modifier.height(16.dp))
 }
