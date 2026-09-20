@@ -1,4 +1,4 @@
-package com.kyssta.hermeybeta
+package com.kyssta.hermey
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
