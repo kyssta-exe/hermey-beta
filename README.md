@@ -1,4 +1,4 @@
-# Hermey Beta
+# Hermey
 
 Native Android client for [Hermes Agent](https://github.com/nesquena/hermes-agent) — an exact mobile port of the Hermes **desktop app**.
 

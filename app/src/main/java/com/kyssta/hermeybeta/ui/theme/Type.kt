@@ -3,7 +3,7 @@ package com.kyssta.hermeybeta.ui.theme
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import com.kyssta.hermeybeta.R
+import com.kyssta.hermey.R
 
 /**
  * Terminal/code face — JetBrains Mono, the same family the desktop bundles

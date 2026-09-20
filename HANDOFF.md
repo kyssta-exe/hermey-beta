@@ -1,4 +1,4 @@
-# Hermey Beta — Handoff
+# Hermey — Handoff
 
 ## What this is
 Native Android client for Hermes Agent — exact mobile port of the desktop app.

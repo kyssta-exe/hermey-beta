@@ -177,7 +177,7 @@ fun ConnectScreen(onConnected: () -> Unit, onCloudSignIn: () -> Unit = {}, onRem
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text(
-                "Hermey Beta",
+                "Hermey",
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
                 color = p.textPrimary,

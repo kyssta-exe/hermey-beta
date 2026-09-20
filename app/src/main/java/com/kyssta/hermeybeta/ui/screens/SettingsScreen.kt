@@ -54,7 +54,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.kyssta.hermeybeta.BuildConfig
+import com.kyssta.hermey.BuildConfig
 import com.kyssta.hermeybeta.auth.ConnectionStore
 import com.kyssta.hermeybeta.network.AppRelease
 import com.kyssta.hermeybeta.network.AppUpdates
@@ -352,7 +352,7 @@ private fun AboutTab(connName: String?, connUrl: String?, onManageGateways: () -
     Column(Modifier.verticalScroll(rememberScrollState())) {
         EmptyState(
             title = "About",
-            description = "Hermey Beta v${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}) · thin gateway client",
+            description = "Hermey v${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}) · thin gateway client",
             modifier = Modifier.fillMaxWidth(),
         )
         ListRow(
@@ -419,7 +419,7 @@ private fun enqueueApk(ctx: android.content.Context, rel: AppRelease) {
     val dm = ctx.getSystemService(android.app.DownloadManager::class.java)
     dm.enqueue(
         android.app.DownloadManager.Request(android.net.Uri.parse(rel.apkUrl))
-            .setTitle("Hermey Beta ${rel.tag}")
+            .setTitle("Hermey ${rel.tag}")
             .setDescription("Downloading update")
             .setNotificationVisibility(android.app.DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
             .setMimeType("application/vnd.android.package-archive")
