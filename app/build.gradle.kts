@@ -85,6 +85,7 @@ dependencies {
     implementation(libs.navigation.compose)
 
     implementation(libs.okhttp)
+    implementation(libs.gson)
     implementation(libs.coroutines.android)
     implementation(libs.security.crypto)
 

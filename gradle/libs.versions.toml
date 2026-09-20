@@ -10,6 +10,7 @@ okhttp = "4.12.0"
 coroutines = "1.8.1"
 securityCrypto = "1.1.0"
 jsonJvm = "20240303"
+gson = "2.11.0"
 junit = "4.13.2"
 
 [libraries]
@@ -31,6 +32,7 @@ coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutin
 security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "securityCrypto" }
 # Real org.json for JVM unit tests (android.jar only ships throwing stubs).
 json-jvm = { group = "org.json", name = "json", version.ref = "jsonJvm" }
+gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 
 [plugins]

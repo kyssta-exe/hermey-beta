@@ -4,12 +4,14 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import com.kyssta.hermeybeta.network.GatewayCookieJar
 import com.kyssta.hermeybeta.navigation.AppNavigation
 import com.kyssta.hermeybeta.ui.theme.HermeyBetaTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        GatewayCookieJar.init(this)
         enableEdgeToEdge()
         setContent {
             HermeyBetaTheme {

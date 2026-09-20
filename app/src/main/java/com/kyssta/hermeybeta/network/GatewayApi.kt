@@ -15,29 +15,6 @@ import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
-/** Gateway session cookies survive across requests for the life of the process. */
-object GatewayCookieJar : CookieJar {
-    private val store = ConcurrentHashMap<String, MutableList<Cookie>>()
-
-    override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
-        val list = store.getOrPut(url.host) { mutableListOf() }
-        synchronized(list) {
-            list.removeAll { existing -> cookies.any { it.name == existing.name } }
-            list.addAll(cookies)
-        }
-    }
-
-    override fun loadForRequest(url: HttpUrl): List<Cookie> {
-        val list = store[url.host] ?: return emptyList()
-        synchronized(list) {
-            list.removeAll { it.expiresAt < System.currentTimeMillis() && it.persistent }
-            return list.toList()
-        }
-    }
-
-    fun clear() = store.clear()
-}
-
 class GatewayHttpException(val code: Int, val detail: String?) : IOException("HTTP $code${detail?.let { ": $it" } ?: ""}")
 
 /**
