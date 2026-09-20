@@ -74,6 +74,7 @@ import com.kyssta.hermeybeta.ui.components.Loader
 import com.kyssta.hermeybeta.ui.components.SearchField
 import com.kyssta.hermeybeta.ui.theme.Hermes
 import com.kyssta.hermeybeta.ui.theme.HermesLayout
+import com.kyssta.hermeybeta.ui.theme.HapticHelper
 import androidx.compose.foundation.BorderStroke
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Job
@@ -801,7 +802,7 @@ fun ChatScreen(
                     )
                     HermesButton(
                         "Send",
-                        onClick = { vm.send() },
+                        onClick = { HapticHelper.tap(ctx); vm.send() },
                         modifier = Modifier.padding(start = 8.dp),
                         enabled = vm.input.isNotBlank() && !vm.streaming && vm.sessionId.isNotBlank(),
                     )

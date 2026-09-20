@@ -48,6 +48,7 @@ import com.kyssta.hermeybeta.ui.components.Loader
 import com.kyssta.hermeybeta.ui.components.SearchField
 import com.kyssta.hermeybeta.ui.theme.Hermes
 import com.kyssta.hermeybeta.ui.theme.HermesLayout
+import com.kyssta.hermeybeta.ui.theme.HapticHelper
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
@@ -143,6 +144,7 @@ class SessionsViewModel(app: Application) : AndroidViewModel(app) {
 @Composable
 fun SessionsScreen(onOpenChat: (String) -> Unit, onNewChat: () -> Unit,
     onMenu: () -> Unit = {}) {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
     val vm: SessionsViewModel = viewModel()
     val conn by SessionRepository.connection.collectAsState()
     val p = Hermes
@@ -206,7 +208,16 @@ fun SessionsScreen(onOpenChat: (String) -> Unit, onNewChat: () -> Unit,
                                         onClick = { onOpenChat(s.stableId) },
                                         onPin = { vm.togglePin(c, s) },
                                         onArchive = { vm.archive(c, s, s.archived != true) },
-                                        onDelete = { vm.delete(c, s) },
+                                        onDelete = {
+                                            c?.let { conn ->
+                                                val d = android.app.AlertDialog.Builder(ctx)
+                                                    .setTitle("Delete session?")
+                                                    .setMessage("This can't be undone.")
+                                                    .setPositiveButton("Delete") { _, _ -> vm.delete(conn, s) }
+                                                    .setNegativeButton("Cancel", null)
+                                                d.show()
+                                            }
+                                        },
                                     )
                                     HorizontalDivider(color = p.strokeTertiary, thickness = 0.5.dp)
                                 }
