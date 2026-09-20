@@ -74,6 +74,7 @@ import com.kyssta.hermeybeta.ui.components.Loader
 import com.kyssta.hermeybeta.ui.components.SearchField
 import com.kyssta.hermeybeta.ui.theme.Hermes
 import com.kyssta.hermeybeta.ui.theme.HermesLayout
+import androidx.compose.foundation.BorderStroke
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -684,6 +685,7 @@ fun ChatScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = p.sidebar),
                 actions = {
+                    HermesButton("Sessions", onClick = { onOpenSessions?.invoke() }, variant = HermesVariant.Text, size = HermesSize.Sm)
                     if (vm.streaming) {
                         HermesButton("Stop", onClick = { vm.interrupt() }, variant = HermesVariant.Text, size = HermesSize.Sm)
                     }
@@ -937,6 +939,22 @@ private fun ColumnScope.NewChatEmptyState() {
     }
 }
 
+/** Pretty-print a JSON string for display; returns original if not valid JSON. */
+private fun prettyJson(input: String): String {
+    return try {
+        val root = JSONObject(input)
+        root.toString(2)
+    } catch (_: Exception) {
+        input
+    }
+}
+
+/** Detect if a string looks like JSON (starts with { or [). */
+private fun looksLikeJson(s: String): Boolean {
+    val trimmed = s.trim()
+    return trimmed.startsWith("{") || trimmed.startsWith("[")
+}
+
 @Composable
 private fun MessageRow(m: UiMsg) {
     val p = Hermes
@@ -954,7 +972,28 @@ private fun MessageRow(m: UiMsg) {
         )
         is UiMsg.Tool -> Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
             Text("▸ ${m.name}", color = p.purple, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-            Text(m.summary, color = p.textTertiary, fontSize = 13.sp, maxLines = 4)
+            if (m.summary.isNotBlank()) {
+                if (looksLikeJson(m.summary)) {
+                    val formatted = prettyJson(m.summary)
+                    Surface(
+                        color = p.background.copy(alpha = 0.5f),
+                        shape = RoundedCornerShape(8.dp),
+                        border = BorderStroke(0.5.dp, p.strokeTertiary),
+                        modifier = Modifier.padding(top = 4.dp),
+                    ) {
+                        Text(
+                            formatted,
+                            color = p.textSecondary,
+                            fontSize = 12.sp,
+                            fontFamily = HermesMono,
+                            modifier = Modifier.padding(8.dp),
+                            maxLines = 8,
+                        )
+                    }
+                } else {
+                    Text(m.summary, color = p.textTertiary, fontSize = 13.sp, maxLines = 4)
+                }
+            }
         }
     }
 }

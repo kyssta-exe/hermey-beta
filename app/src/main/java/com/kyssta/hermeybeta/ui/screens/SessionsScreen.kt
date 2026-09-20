@@ -61,8 +61,8 @@ class SessionsViewModel(app: Application) : AndroidViewModel(app) {
     private var generation = -1
     private var pinGen by mutableStateOf(0)
 
-    fun load(conn: ServerConnection, force: Boolean = false) {
-        if (!force && generation == SessionRepository.generation.value && sessions.isNotEmpty()) return
+    fun load(conn: ServerConnection?, force: Boolean = false) {
+        if (conn == null) return
         generation = SessionRepository.generation.value
         viewModelScope.launch {
             loading = sessions.isEmpty()
@@ -78,28 +78,29 @@ class SessionsViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun refresh(conn: ServerConnection) {
+    fun refresh(conn: ServerConnection?) {
+        if (conn == null) return
         refreshing = true
-        generation = -1
         load(conn, force = true)
     }
 
-    fun isPinned(conn: ServerConnection, s: SessionSummary): Boolean {
+    fun isPinned(conn: ServerConnection?, s: SessionSummary): Boolean {
         pinGen
-        return s.stableId.isNotBlank() && store.pinnedIds(conn.id).contains(s.stableId)
+        return s.stableId.isNotBlank() && conn != null && store.pinnedIds(conn.id).contains(s.stableId)
     }
 
     /** Pins are local UI state (desktop sidebar pins); the gateway has no pin field. */
-    fun togglePin(conn: ServerConnection, s: SessionSummary) {
+    fun togglePin(conn: ServerConnection?, s: SessionSummary) {
         val id = s.stableId
-        if (id.isBlank()) return
+        if (id.isBlank() || conn == null) return
         store.setPinned(conn.id, id, !isPinned(conn, s))
         pinGen++
     }
 
     /** Pinned rows float to the top, like the desktop sidebar. */
-    fun visibleSessions(conn: ServerConnection, query: String): List<SessionSummary> {
+    fun visibleSessions(conn: ServerConnection?, query: String): List<SessionSummary> {
         pinGen
+        if (conn == null) return emptyList()
         val pins = store.pinnedIds(conn.id)
         return sessions
             .filter {
@@ -110,9 +111,9 @@ class SessionsViewModel(app: Application) : AndroidViewModel(app) {
             .sortedByDescending { pins.contains(it.stableId) }
     }
 
-    fun archive(conn: ServerConnection, s: SessionSummary, archived: Boolean) {
+    fun archive(conn: ServerConnection?, s: SessionSummary, archived: Boolean) {
         val id = s.stableId
-        if (id.isBlank()) return
+        if (id.isBlank() || conn == null) return
         viewModelScope.launch {
             try {
                 SessionRepository.apiFor(conn).updateSession(id, JSONObject().put("archived", archived))
@@ -123,9 +124,9 @@ class SessionsViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun delete(conn: ServerConnection, s: SessionSummary) {
+    fun delete(conn: ServerConnection?, s: SessionSummary) {
         val id = s.stableId
-        if (id.isBlank()) return
+        if (id.isBlank() || conn == null) return
         viewModelScope.launch {
             try {
                 SessionRepository.apiFor(conn).deleteSession(id)
@@ -146,7 +147,9 @@ fun SessionsScreen(onOpenChat: (String) -> Unit, onNewChat: () -> Unit,
     val conn by SessionRepository.connection.collectAsState()
     val p = Hermes
 
-    LaunchedEffect(conn) { conn?.let { vm.load(it) } }
+    LaunchedEffect(conn) {
+        conn?.let { vm.load(it, force = true) }
+    }
 
     Scaffold(
         topBar = {
@@ -182,7 +185,7 @@ fun SessionsScreen(onOpenChat: (String) -> Unit, onNewChat: () -> Unit,
                 )
                 else -> {
                     val c = conn
-                    val rows = if (c != null) vm.visibleSessions(c, vm.query) else emptyList()
+                    val rows = vm.visibleSessions(c, vm.query)
                     if (rows.isEmpty()) {
                         EmptyState(
                             title = if (vm.query.isBlank()) "No sessions yet" else "No matches",
@@ -193,7 +196,7 @@ fun SessionsScreen(onOpenChat: (String) -> Unit, onNewChat: () -> Unit,
                     } else {
                         PullToRefreshBox(
                             isRefreshing = vm.refreshing,
-                            onRefresh = { conn?.let { vm.refresh(it) } },
+                            onRefresh = { c?.let { vm.refresh(it) } },
                         ) {
                             LazyColumn(Modifier.fillMaxSize()) {
                                 items(rows, key = { it.stableId.ifBlank { it.title ?: "?" } }) { s ->
@@ -201,9 +204,9 @@ fun SessionsScreen(onOpenChat: (String) -> Unit, onNewChat: () -> Unit,
                                         s = s,
                                         pinned = c != null && vm.isPinned(c, s),
                                         onClick = { onOpenChat(s.stableId) },
-                                        onPin = { conn?.let { vm.togglePin(it, s) } },
-                                        onArchive = { conn?.let { vm.archive(it, s, s.archived != true) } },
-                                        onDelete = { conn?.let { vm.delete(it, s) } },
+                                        onPin = { vm.togglePin(c, s) },
+                                        onArchive = { vm.archive(c, s, s.archived != true) },
+                                        onDelete = { vm.delete(c, s) },
                                     )
                                     HorizontalDivider(color = p.strokeTertiary, thickness = 0.5.dp)
                                 }
