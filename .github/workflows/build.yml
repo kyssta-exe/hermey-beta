@@ -16,9 +16,9 @@ jobs:
           distribution: temurin
           java-version: 21
           cache: gradle
-      - uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v4
         with:
-          cmdline-tools-version: 11076708
+          cmdline-tools-version: latest
       - run: echo "sdk.dir=$ANDROID_HOME" > local.properties
       - run: ./gradlew assembleDebug testDebugUnitTest --no-daemon --stacktrace
       - uses: actions/upload-artifact@v4

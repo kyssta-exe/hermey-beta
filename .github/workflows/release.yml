@@ -17,13 +17,11 @@ jobs:
           distribution: temurin
           java-version: 21
           cache: gradle
-      - uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v4
         with:
-          cmdline-tools-version: 11076708
+          cmdline-tools-version: latest
       - run: echo "sdk.dir=$ANDROID_HOME" > local.properties
       - name: Decode keystore from secret
-        # If KEYSTORE_BASE64 is unset the release build falls back to the debug
-        # key (see app/build.gradle.kts) so tags always produce an APK.
         run: |
           mkdir -p keystore
           if [ -n "$KEYSTORE_BASE64" ]; then
