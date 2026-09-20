@@ -12,34 +12,29 @@ android {
         applicationId = "com.kyssta.hermey"
         minSdk = 26
         targetSdk = 35
-        versionCode = 15
-        versionName = "1.0.0"
+        versionCode = 16
+        versionName = "1.0.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
         }
     }
 
-    // CI signs with the beta keystore when its secret is present; otherwise the
-    // debug key is used so local + unsigned-CI builds never fail on signing.
-    val betaKeystore = rootProject.file("keystore/hermey-beta.keystore")
+    // Release signing config — reads env vars or falls back to debug if missing.
+    val releaseKeystore = rootProject.file("keystore/hermey-beta.keystore")
     signingConfigs {
-        create("beta") {
-            storeFile = betaKeystore
-            storePassword = System.getenv("KEYSTORE_PASSWORD")
-            keyAlias = System.getenv("KEY_ALIAS")
-            keyPassword = System.getenv("KEY_PASSWORD")
+        create("release") {
+            storeFile = if (releaseKeystore.exists()) releaseKeystore else null
+            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
+            keyAlias = System.getenv("KEY_ALIAS") ?: ""
+            keyPassword = System.getenv("KEY_PASSWORD") ?: ""
         }
     }
     buildTypes {
         release {
             isMinifyEnabled = false
             isShrinkResources = false
-            signingConfig = if (betaKeystore.exists()) {
-                signingConfigs.getByName("beta")
-            } else {
-                signingConfigs.getByName("debug")
-            }
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
