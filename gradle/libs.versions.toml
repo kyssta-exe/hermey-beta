@@ -12,6 +12,7 @@ securityCrypto = "1.1.0"
 jsonJvm = "20240303"
 gson = "2.11.0"
 junit = "4.13.2"
+datastore = "1.1.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -34,6 +35,7 @@ security-crypto = { group = "androidx.security", name = "security-crypto", versi
 json-jvm = { group = "org.json", name = "json", version.ref = "jsonJvm" }
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
+datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -1,14 +1,20 @@
 package com.kyssta.hermeybeta.ui.theme
 
 import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.mutableStateOf
 
 /**
  * Appearance setting — mirrors the desktop color-mode SegmentedControl
- * (system / light / dark). Persisted beside the atom that owns it.
+ * (system / light / dark).
  */
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
 object ThemeModeStore {
-    val mode: MutableState<ThemeMode> = mutableStateOf(ThemeMode.SYSTEM)
+    /** Backing atom, written by the DataStore loader at startup & by Settings. */
+    var mode: MutableState<ThemeMode> = androidx.compose.runtime.mutableStateOf(ThemeMode.SYSTEM)
+        private set
+
+    /** Called from Settings (and MainActivity boot) to persist + react. */
+    fun setMode(newMode: ThemeMode) {
+        mode.value = newMode
+    }
 }

@@ -84,6 +84,9 @@ import com.kyssta.hermeybeta.ui.components.SegmentedControl
 import com.kyssta.hermeybeta.ui.theme.Hermes
 import com.kyssta.hermeybeta.ui.theme.HermesLayout
 import com.kyssta.hermeybeta.ui.theme.HermesSans
+import com.kyssta.hermeybeta.ui.theme.ThemeMode
+import com.kyssta.hermeybeta.ui.theme.ThemeModeStore
+import com.kyssta.hermeybeta.ui.theme.ThemeModeStorage
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -203,7 +206,7 @@ fun SettingsScreen(onMenu: () -> Unit = {}, onSignOut: () -> Unit, onManageGatew
                 .padding(horizontal = HermesLayout.PAGE_INSET_X.dp),
         ) {
             SegmentedControl(
-                options = listOf("Model", "Workspace", "Tools", "About"),
+                options = listOf("Model", "Workspace", "Tools", "Appearance", "About"),
                 selected = tab,
                 onSelect = { tab = it },
                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
@@ -216,6 +219,7 @@ fun SettingsScreen(onMenu: () -> Unit = {}, onSignOut: () -> Unit, onManageGatew
                 )
                 1 -> WorkspaceTab()
                 2 -> ToolsTab()
+                3 -> AppearanceTab()
                 else -> AboutTab(connName = conn?.displayName, connUrl = conn?.baseUrl, onManageGateways = onManageGateways, onSignOut = {
                     GatewayCookieJar.clear()
                     android.webkit.CookieManager.getInstance().removeAllCookies(null)
