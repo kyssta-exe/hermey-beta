@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.kyssta.hermeybeta"
+    namespace = "com.kyssta.hermey"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.kyssta.hermeybeta"
+        applicationId = "com.kyssta.hermey"
         minSdk = 26
         targetSdk = 35
         versionCode = 15
