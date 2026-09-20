@@ -72,6 +72,7 @@ import com.kyssta.hermeybeta.ui.components.HermesSize
 import com.kyssta.hermeybeta.ui.components.HermesVariant
 import com.kyssta.hermeybeta.ui.components.Loader
 import com.kyssta.hermeybeta.ui.components.SearchField
+import com.kyssta.hermeybeta.ui.screens.BasicMarkdown
 import com.kyssta.hermeybeta.ui.theme.Hermes
 import com.kyssta.hermeybeta.ui.theme.HermesLayout
 import com.kyssta.hermeybeta.ui.theme.HapticHelper
@@ -965,10 +966,9 @@ private fun MessageRow(m: UiMsg) {
                 Text(m.text, color = p.onAccent, fontSize = 15.sp, modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp))
             }
         }
-        is UiMsg.Assistant -> Text(
-            m.text.ifBlank { "…" },
-            color = p.textPrimary,
-            fontSize = 15.sp,
+        is UiMsg.Assistant -> BasicMarkdown(
+            text = m.text,
+            fontSize = 15f,
             modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
         )
         is UiMsg.Tool -> Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
