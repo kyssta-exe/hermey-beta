@@ -427,7 +427,7 @@ private fun enqueueApk(ctx: android.content.Context, rel: AppRelease) {
             .setDescription("Downloading update")
             .setNotificationVisibility(android.app.DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
             .setMimeType("application/vnd.android.package-archive")
-            .setDestinationInExternalFilesDir(ctx, android.os.Environment.DIRECTORY_DOWNLOADS, "hermey-beta-${rel.tag}.apk"),
+            .setDestinationInExternalFilesDir(ctx, android.os.Environment.DIRECTORY_DOWNLOADS, "hermey-${rel.tag}.apk"),
     )
 }
 
