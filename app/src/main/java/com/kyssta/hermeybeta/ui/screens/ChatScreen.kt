@@ -90,6 +90,7 @@ import com.kyssta.hermeybeta.ui.screens.BasicMarkdown
 import com.kyssta.hermeybeta.ui.theme.Hermes
 import com.kyssta.hermeybeta.ui.theme.HermesLayout
 import com.kyssta.hermeybeta.ui.theme.HapticHelper
+import com.kyssta.hermeybeta.ui.theme.rememberCompletionBeep
 import androidx.compose.foundation.BorderStroke
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Job
@@ -624,6 +625,7 @@ fun ChatScreen(
     val ctx = LocalContext.current
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
+    val playBeep = rememberCompletionBeep(ctx)
     var showModels by mutableStateOf(false)
     var showSessionMenu by mutableStateOf(false)
 
@@ -659,6 +661,11 @@ fun ChatScreen(
             // Per-token animate() janks; glide while streaming, ease on settle.
             if (vm.streaming) listState.scrollToItem(vm.messages.size - 1)
             else listState.animateScrollToItem(vm.messages.size - 1)
+        }
+        // Play completion beep when last assistant message transitions to done.
+        val lastMsg = vm.messages.lastOrNull()
+        if (lastMsg != null && lastMsg is UiMsg.Assistant && lastMsg.done) {
+            playBeep()
         }
     }
 
