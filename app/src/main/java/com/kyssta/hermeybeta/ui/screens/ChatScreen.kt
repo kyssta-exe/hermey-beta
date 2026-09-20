@@ -10,6 +10,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -19,14 +20,22 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -42,6 +51,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,6 +61,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import com.kyssta.hermeybeta.ui.theme.HermesMono
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -609,6 +623,7 @@ fun ChatScreen(
     val p = Hermes
     val ctx = LocalContext.current
     val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
     var showModels by mutableStateOf(false)
     var showSessionMenu by mutableStateOf(false)
 
@@ -748,6 +763,22 @@ fun ChatScreen(
                 ) {
                     // Index keys: assistant rows mutate in place while streaming.
                     items(vm.messages.size) { i -> MessageRow(vm.messages[i]) }
+                }
+            }
+            // Scroll-to-bottom FAB (only shown when scrolled up and messages exist)
+            val showFab = listState.firstVisibleItemIndex > 3 && vm.messages.isNotEmpty()
+            if (showFab) {
+                    FloatingActionButton(
+                    onClick = {
+                        coroutineScope.launch { listState.animateScrollToItem(0) }
+                    },
+                    containerColor = p.accent,
+                    contentColor = p.onAccent,
+                    modifier = Modifier
+                        .padding(horizontal = HermesLayout.PAGE_INSET_X.dp)
+                        .align(Alignment.End),
+                ) {
+                    Icon(Icons.Default.ArrowDownward, contentDescription = "Scroll to bottom")
                 }
             }
             // The composer only shows when a message could actually send.
@@ -966,11 +997,45 @@ private fun MessageRow(m: UiMsg) {
                 Text(m.text, color = p.onAccent, fontSize = 15.sp, modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp))
             }
         }
-        is UiMsg.Assistant -> BasicMarkdown(
-            text = m.text,
-            fontSize = 15f,
-            modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
-        )
+        is UiMsg.Assistant -> Box(
+            Modifier.fillMaxWidth().padding(vertical = 6.dp),
+        ) {
+            BasicMarkdown(text = m.text, fontSize = 15f)
+            if (m.text.isNotBlank() && !m.done) {
+                // Streaming pulse cursor — fades while token stream is active
+                val t = androidx.compose.animation.core.rememberInfiniteTransition()
+                val alpha by t.animateFloat(
+                    initialValue = 0.6f, targetValue = 0f,
+                    animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+                        animation = androidx.compose.animation.core.tween(durationMillis = 800, easing = androidx.compose.animation.core.LinearEasing),
+                    ),
+                )
+                Box(
+                    Modifier
+                        .align(Alignment.TopStart)
+                        .width(3.dp)
+                        .height(18.dp)
+                        .background(p.accent.copy(alpha = alpha), shape = RoundedCornerShape(2.dp)),
+                )
+            }
+            // Copy button — only visible on desktop; hide on narrow screens
+            val ctx = LocalContext.current.applicationContext
+            Row(Modifier.align(Alignment.TopEnd)) {
+                IconButton(
+                    onClick = {
+                        val clip = ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                        clip.setPrimaryClip(android.content.ClipData.newPlainText("response", m.text))
+                        HapticHelper.tap(ctx)
+                    },
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ContentCopy,
+                        contentDescription = "Copy",
+                        tint = p.textTertiary,
+                    )
+                }
+            }
+        }
         is UiMsg.Tool -> Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
             Text("▸ ${m.name}", color = p.purple, fontSize = 13.sp, fontWeight = FontWeight.Medium)
             if (m.summary.isNotBlank()) {
